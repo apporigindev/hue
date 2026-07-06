@@ -1,0 +1,77 @@
+/**
+ * classify.js
+ * Rule-based 12-season classification from sampled colors.
+ *
+ * The three axes of seasonal color analysis:
+ *   1. TEMPERATURE (warm ↔ cool)  — skin undertone, from Lab hue angle
+ *   2. VALUE (light ↔ deep)       — overall depth of skin + hair
+ *   3. CHROMA (bright ↔ soft)     — clarity vs mutedness, from Lab chroma
+ *                                    + skin/hair/eye contrast
+ *
+ * NOTE FOR TUNING: the thresholds below are sensible starting points,
+ * not validated truths. They MUST be tuned against a diverse test set
+ * of photos (varied skin tones, lighting) before launch. See README.
+ */
+
+import { rgbToLab } from "./analysis.js";
+
+export function classify({ skin, eyes, hair }) {
+  const skinLab = rgbToLab(skin);
+  const hairLab = rgbToLab(hair);
+  const eyeLab = rgbToLab(eyes);
+
+  /* ---- 1. Temperature: hue angle of skin in Lab a-b plane ----
+     Warm undertones push toward yellow (higher b relative to a);
+     cool undertones toward pink/blue (higher a relative to b).   */
+  const hueAngle = (Math.atan2(skinLab.b, skinLab.a) * 180) / Math.PI;
+  // Typical skin hue angles run ~35° (cool/pink) to ~75° (warm/golden).
+  const warmth = clamp((hueAngle - 45) / 25, -1, 1); // -1 cool … +1 warm
+  const isWarm = warmth > 0.12;
+  const isCool = warmth < -0.12;
+  // between: "neutral" — value & chroma decide the season group
+
+  /* ---- 2. Value: combined depth of skin and hair ---- */
+  const depth = skinLab.L * 0.55 + hairLab.L * 0.45; // 0 dark … 100 light
+  const isLight = depth > 62;
+  const isDark = depth < 38;
+
+  /* ---- 3. Chroma: skin clarity + feature contrast ---- */
+  const skinChroma = Math.hypot(skinLab.a, skinLab.b);
+  const contrast =
+    Math.abs(skinLab.L - hairLab.L) * 0.6 + Math.abs(skinLab.L - eyeLab.L) * 0.4;
+  const brightness = skinChroma * 0.5 + contrast * 0.5;
+  const isBright = brightness > 34;
+  const isSoft = brightness < 24;
+
+  /* ---- Decision tree: dominant characteristic first ---- */
+  let key;
+  if (isDark) {
+    key = isWarm ? "darkAutumn" : "darkWinter";
+  } else if (isLight) {
+    key = isWarm ? "lightSpring" : "lightSummer";
+  } else if (isBright) {
+    key = isWarm ? "brightSpring" : "brightWinter";
+  } else if (isSoft) {
+    key = isWarm ? "softAutumn" : "softSummer";
+  } else {
+    // Medium value, medium chroma: temperature is the deciding axis
+    if (isWarm) key = warmth > 0.45 ? "trueAutumn" : "trueSpring";
+    else if (isCool) key = warmth < -0.45 ? "trueWinter" : "trueSummer";
+    else key = brightness > 29 ? "trueSpring" : "softSummer";
+  }
+
+  return {
+    key,
+    metrics: {
+      warmth: round2(warmth),
+      depth: round2(depth),
+      brightness: round2(brightness),
+      undertone: isWarm ? "Warm" : isCool ? "Cool" : "Neutral",
+      value: isLight ? "Light" : isDark ? "Deep" : "Medium",
+      chroma: isBright ? "Bright" : isSoft ? "Soft" : "Balanced",
+    },
+  };
+}
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const round2 = (v) => Math.round(v * 100) / 100;
