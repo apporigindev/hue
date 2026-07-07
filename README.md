@@ -33,14 +33,25 @@ One-time setup on a fresh repo: **Settings → Pages → Build and deployment �
 ## Architecture
 
 ```
-index.html          all five screens in one document, module entry
-css/styles.css      design tokens + all component styles
-js/app.js           screen flow controller, camera lifecycle, state
-js/analysis.js      MediaPipe landmarks → skin/eye/hair color samples → Lab
-js/classify.js      rule-based 12-season decision tree (warmth/depth/chroma)
-js/palettes.js      the 12 seasons: copy, swatches, compare shades
-js/compare.js       canvas renderer: photo + colored drape + ambient tint
+www/                 the web app (deployed to GitHub Pages as-is)
+  index.html         all five screens in one document, module entry
+  css/styles.css     design tokens + all component styles
+  js/app.js          screen flow controller, camera lifecycle, state
+  js/analysis.js     MediaPipe landmarks → skin/eye/hair color samples → Lab
+  js/classify.js     rule-based 12-season decision tree (warmth/depth/chroma)
+  js/palettes.js     the 12 seasons: copy, swatches, compare shades
+  js/compare.js      canvas renderer: photo + colored drape + ambient tint
+ios/                 Capacitor 8 iOS wrapper (SPM, no CocoaPods)
+assets/brand/        Season Drape master SVG
+docs/                TestFlight setup guide
 ```
+
+## iOS / TestFlight
+
+The app ships to TestFlight as a Capacitor wrapper around `www/`. Repo side
+is complete — Apple portal + GitHub secrets steps are in
+[docs/ios-testflight-setup.md](docs/ios-testflight-setup.md). Trigger builds
+manually: Actions → “iOS — Build & Upload to TestFlight”.
 
 ## Design system
 

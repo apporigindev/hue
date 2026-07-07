@@ -1,0 +1,10 @@
+{
+  "appId": "com.apporigin.seasonist",
+  "appName": "Seasonist",
+  "webDir": "www",
+  "backgroundColor": "#ECE7E1",
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#ECE7E1"
+  }
+}
