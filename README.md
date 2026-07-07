@@ -57,9 +57,20 @@ site/                public landing + legal site (deployed to GitHub Pages)
   terms.html         terms of use page (EN + BG)
   og-image.png       social-share image
 ios/                 Capacitor 8 iOS wrapper (SPM, no CocoaPods)
+backend/             subscription service (Fastify/TS) — not yet wired/deployed
 assets/brand/        Season Drape master SVG
 docs/                TestFlight setup + App Store submission guides
 ```
+
+## Monetization (in progress)
+
+Planned model (from market research): free teaser (season + a few colors) →
+one-time / subscription **premium unlock**. `backend/` holds a Fastify service
+that validates App Store / Play purchases and tracks anonymous entitlements
+(see `backend/README.md`). Built and unit-tested, but **not yet wired into the
+app or deployed** — that needs the App Store Connect app + IAP products + a
+host + domain. The app stays on-device and privacy-first; only an anonymous
+subscription record is kept server-side once wired in.
 
 ## Languages
 

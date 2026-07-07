@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.log
+# Apple root CA certs are downloaded per-environment, not committed.
+certs/*.cer
+certs/*.pem
+certs/*.der
+certs/*.crt

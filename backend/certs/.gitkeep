@@ -1,0 +1,4 @@
+# Place the Apple Root CA certificates here (see README).
+# Download from https://www.apple.com/certificateauthority/ — at minimum
+# AppleRootCA-G3.cer. These are public certificates; they are gitignored only
+# to keep the repo lean.
