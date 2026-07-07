@@ -27,6 +27,12 @@
       <div class="blob b2"></div>
     </div>
 
+    <!-- Language toggle -->
+    <div class="lang-toggle" role="group" data-i18n-aria="lang.aria" aria-label="Change language">
+      <button type="button" data-lang-btn="bg">БГ</button>
+      <button type="button" data-lang-btn="en">EN</button>
+    </div>
+
     <!-- ============ SCREEN: CONSENT ============ -->
     <section class="screen active" id="screen-consent" aria-label="Consent">
       <div class="content">
@@ -43,39 +49,47 @@
           </svg>
         </div>
         <div class="brand-name" aria-hidden="true">Seasonist</div>
-        <span class="eyebrow">Before we begin</span>
-        <h1 class="title">Your photo stays <em>yours</em></h1>
-        <p class="body-text">We'll ask for one daylight photo to read your undertone, depth, and contrast. Everything is analyzed on this device, in your browser — nothing is uploaded.</p>
+        <span class="eyebrow" data-i18n="consent.eyebrow">Before we begin</span>
+        <h1 class="title" data-i18n-html="consent.title">Your photo stays <em>yours</em></h1>
+        <p class="body-text" data-i18n="consent.body">We'll ask for one daylight photo to read your undertone, depth, and contrast. Everything is analyzed on this device, in your browser — nothing is uploaded.</p>
 
         <ul class="consent-list">
-          <li><span class="dot"></span>Your photo never leaves this device.</li>
-          <li><span class="dot"></span>Your photo is never stored — it's gone when you close this page.</li>
-          <li><span class="dot"></span>Nothing is shared or used to train any model.</li>
+          <li><span class="dot"></span><span data-i18n="consent.point1">Your photo never leaves this device.</span></li>
+          <li><span class="dot"></span><span data-i18n="consent.point2">Your photo is never stored — it's gone when you close this page.</span></li>
+          <li><span class="dot"></span><span data-i18n="consent.point3">Nothing is shared or used to train any model.</span></li>
         </ul>
 
         <div class="spacer"></div>
-        <button class="btn-primary" id="btn-consent">I agree — continue</button>
-        <button class="btn-ghost" id="btn-decline">Not now</button>
+        <button class="btn-primary" id="btn-consent" data-i18n="consent.agree">I agree — continue</button>
+        <button class="btn-ghost" id="btn-decline" data-i18n="consent.decline">Not now</button>
+
+        <nav class="legal-links" aria-label="Legal">
+          <button type="button" class="link" data-doc="privacy" data-i18n="footer.privacy">Privacy Policy</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" class="link" data-doc="terms" data-i18n="footer.terms">Terms of Use</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" class="link" data-doc="about" data-i18n="footer.about">About</button>
+        </nav>
       </div>
     </section>
 
     <!-- ============ SCREEN: CAPTURE ============ -->
     <section class="screen" id="screen-capture" aria-label="Capture photo">
       <div class="content">
-        <span class="eyebrow">Step 1 of 2</span>
-        <h1 class="title">Find soft, <em>even</em> daylight</h1>
-        <p class="body-text">Face a window, skip filters and makeup if you can, and keep a neutral expression.</p>
+        <span class="eyebrow" data-i18n="capture.eyebrow">Step 1 of 2</span>
+        <h1 class="title" data-i18n-html="capture.title">Find soft, <em>even</em> daylight</h1>
+        <p class="body-text" data-i18n="capture.body">Face a window, skip filters and makeup if you can, and keep a neutral expression.</p>
 
         <div class="capture-frame">
           <div class="face-ring" id="face-ring">
             <video id="camera-feed" autoplay playsinline muted></video>
-            <span id="ring-hint">align face</span>
+            <span id="ring-hint" data-i18n="capture.ringHint">align face</span>
           </div>
-          <div class="tip-pill">Natural light · No flash · Look straight ahead</div>
+          <div class="tip-pill" data-i18n="capture.tip">Natural light · No flash · Look straight ahead</div>
         </div>
 
-        <button class="btn-primary" id="btn-capture">Take photo</button>
-        <label class="btn-ghost" for="file-input">Upload from gallery instead</label>
+        <button class="btn-primary" id="btn-capture" data-i18n="capture.take">Take photo</button>
+        <label class="btn-ghost" for="file-input" data-i18n="capture.upload">Upload from gallery instead</label>
         <input type="file" id="file-input" accept="image/*" hidden>
       </div>
     </section>
@@ -84,14 +98,14 @@
     <section class="screen" id="screen-analyzing" aria-label="Analyzing">
       <div class="content center">
         <div class="analyzing-orb" aria-hidden="true"></div>
-        <span class="eyebrow" id="analyzing-status">Reading your coloring…</span>
+        <span class="eyebrow" id="analyzing-status" data-i18n="analyzing.step1">Reading your coloring…</span>
       </div>
     </section>
 
     <!-- ============ SCREEN: RESULT ============ -->
     <section class="screen" id="screen-result" aria-label="Your result">
       <div class="content">
-        <span class="eyebrow">Your result</span>
+        <span class="eyebrow" data-i18n="result.eyebrow">Your result</span>
         <h1 class="season-name" id="season-name">—</h1>
         <p class="body-text" id="season-desc"></p>
 
@@ -101,17 +115,17 @@
         <div class="traits" id="traits"></div>
 
         <div class="spacer"></div>
-        <button class="btn-primary" id="btn-to-compare">See it on your photo</button>
-        <button class="btn-ghost" id="btn-retake">Retake photo</button>
-        <button class="btn-ghost danger" id="btn-delete-result">Delete my analysis</button>
+        <button class="btn-primary" id="btn-to-compare" data-i18n="result.toCompare">See it on your photo</button>
+        <button class="btn-ghost" id="btn-retake" data-i18n="result.retake">Retake photo</button>
+        <button class="btn-ghost danger" id="btn-delete-result" data-i18n="result.delete">Delete my analysis</button>
       </div>
     </section>
 
     <!-- ============ SCREEN: COMPARE ============ -->
     <section class="screen" id="screen-compare" aria-label="Compare shades">
       <div class="content">
-        <span class="eyebrow">Same photo, different shade</span>
-        <h1 class="title compact">See the <em>difference</em></h1>
+        <span class="eyebrow" data-i18n="compare.eyebrow">Same photo, different shade</span>
+        <h1 class="title compact" data-i18n-html="compare.title">See the <em>difference</em></h1>
 
         <div class="compare-photo">
           <canvas id="compare-canvas"></canvas>
@@ -121,19 +135,30 @@
         <p class="verdict" id="verdict"></p>
 
         <div class="spacer"></div>
-        <button class="btn-ghost" id="btn-start-over">Start over</button>
-        <button class="btn-ghost danger" id="btn-delete-compare">Delete my analysis</button>
+        <button class="btn-ghost" id="btn-start-over" data-i18n="compare.startOver">Start over</button>
+        <button class="btn-ghost danger" id="btn-delete-compare" data-i18n="compare.delete">Delete my analysis</button>
       </div>
     </section>
 
     <!-- ============ SCREEN: ERROR ============ -->
     <section class="screen" id="screen-error" aria-label="Something went wrong">
       <div class="content center">
-        <span class="eyebrow">Hmm</span>
-        <h1 class="title" id="error-title">We couldn't read that photo</h1>
-        <p class="body-text" id="error-text">Make sure your face is clearly visible and well lit, then try again.</p>
+        <span class="eyebrow" data-i18n="error.eyebrow">Hmm</span>
+        <h1 class="title" id="error-title" data-i18n="error.default.title">We couldn't read that photo</h1>
+        <p class="body-text" id="error-text" data-i18n="error.default.text">Make sure your face is clearly visible and well lit, then try again.</p>
         <div class="spacer"></div>
-        <button class="btn-primary" id="btn-error-retry">Try again</button>
+        <button class="btn-primary" id="btn-error-retry" data-i18n="error.retry">Try again</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: INFO (privacy / terms / about) ============ -->
+    <section class="screen" id="screen-info" aria-label="Information">
+      <div class="content">
+        <button type="button" class="info-back" id="btn-info-back">
+          <span aria-hidden="true">←</span> <span data-i18n="legal.back">Back</span>
+        </button>
+        <h1 class="title compact" id="info-title">—</h1>
+        <div class="info-body" id="info-body"></div>
       </div>
     </section>
 
@@ -142,10 +167,10 @@
   <!-- ============ Delete confirmation ============ -->
   <div class="confirm-overlay" id="confirm-overlay" hidden>
     <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
-      <h2 class="confirm-title" id="confirm-title">Delete this analysis?</h2>
-      <p class="confirm-text" id="confirm-text">Your photo and result live only on this device — they were never uploaded or stored anywhere. This clears them from here now.</p>
-      <button class="btn-primary" id="confirm-delete">Delete</button>
-      <button class="btn-ghost" id="confirm-cancel">Keep it</button>
+      <h2 class="confirm-title" id="confirm-title" data-i18n="confirm.title">Delete this analysis?</h2>
+      <p class="confirm-text" id="confirm-text" data-i18n="confirm.text">Your photo and result live only on this device — they were never uploaded or stored anywhere. This clears them from here now.</p>
+      <button class="btn-primary" id="confirm-delete" data-i18n="confirm.delete">Delete</button>
+      <button class="btn-ghost" id="confirm-cancel" data-i18n="confirm.cancel">Keep it</button>
     </div>
   </div>
 

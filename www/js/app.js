@@ -1,22 +1,30 @@
 /**
  * app.js
- * Screen flow controller: consent → capture → analyzing → result → compare.
- * All state lives in memory only; nothing is persisted (see PRIVACY.md).
+ * Screen flow controller: consent → capture → analyzing → result → compare,
+ * plus an info screen for Privacy / Terms / About.
+ * All state lives in memory only; nothing personal is persisted (see PRIVACY.md).
+ * A non-personal language preference is kept in localStorage (see i18n.js).
  */
 
 import { initLandmarker, analyzeImage } from "./analysis.js";
 import { classify } from "./classify.js";
-import { SEASONS } from "./palettes.js";
+import { localizeSeason } from "./palettes.js";
 import { renderCompare } from "./compare.js";
+import { LEGAL } from "./legalContent.js";
+import { t, getLang, initI18n, applyStatic, onLangChange } from "./i18n.js";
 
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  photo: null,      // HTMLImageElement of the captured/uploaded photo
-  faceBox: null,    // normalized face bounding box
-  season: null,     // classified season data
-  metrics: null,    // classification metrics
-  stream: null,     // active camera MediaStream
+  photo: null,       // HTMLImageElement of the captured/uploaded photo
+  faceBox: null,     // normalized face bounding box
+  seasonKey: null,   // key into SEASONS; localized to the active language at render
+  metrics: null,     // classification metrics (keys, translated for display)
+  stream: null,      // active camera MediaStream
+  compareIdx: 0,     // selected compare shade
+  errorKind: null,   // 'noFace' | 'lowLight' | 'generic' — for re-translation
+  infoDoc: null,     // 'privacy' | 'terms' | 'about' — for re-translation
+  infoReturn: "screen-consent",
 };
 
 /* ---------------- screen navigation ---------------- */
@@ -25,6 +33,14 @@ function show(screenId) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(screenId).classList.add("active");
 }
+
+function activeScreenId() {
+  const el = [...document.querySelectorAll(".screen")].find((s) => s.classList.contains("active"));
+  return el ? el.id : "screen-consent";
+}
+
+const esc = (s) =>
+  String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
 /* ---------------- consent ---------------- */
 
@@ -36,7 +52,7 @@ $("btn-consent").addEventListener("click", async () => {
 
 $("btn-decline").addEventListener("click", () => {
   // Respect the choice: stay on consent, no nagging.
-  $("btn-decline").textContent = "No problem — come back any time.";
+  $("btn-decline").textContent = t("consent.declined");
 });
 
 /* ---------------- capture ---------------- */
@@ -52,13 +68,13 @@ async function startCamera() {
     $("face-ring").classList.add("live");
   } catch {
     // Camera denied or unavailable — the gallery upload path still works.
-    $("ring-hint").textContent = "camera unavailable — upload below";
+    $("ring-hint").textContent = t("capture.cameraUnavailable");
   }
 }
 
 function stopCamera() {
   if (state.stream) {
-    state.stream.getTracks().forEach((t) => t.stop());
+    state.stream.getTracks().forEach((tr) => tr.stop());
     state.stream = null;
     $("face-ring").classList.remove("live");
   }
@@ -73,7 +89,6 @@ $("btn-capture").addEventListener("click", () => {
   const c = document.createElement("canvas");
   c.width = video.videoWidth;
   c.height = video.videoHeight;
-  // Un-mirror: draw the raw (non-flipped) frame for analysis fidelity
   c.getContext("2d").drawImage(video, 0, 0);
   const img = new Image();
   img.onload = () => { stopCamera(); runAnalysis(img); };
@@ -98,8 +113,9 @@ async function runAnalysis(img) {
   state.photo = img;
   show("screen-analyzing");
   const statusEl = $("analyzing-status");
-  const steps = ["Reading your coloring…", "Measuring undertone…", "Finding your season…"];
+  const steps = [t("analyzing.step1"), t("analyzing.step2"), t("analyzing.step3")];
   let i = 0;
+  statusEl.textContent = steps[0];
   const ticker = setInterval(() => {
     statusEl.textContent = steps[Math.min(++i, steps.length - 1)];
   }, 900);
@@ -108,34 +124,31 @@ async function runAnalysis(img) {
     const samples = await analyzeImage(img, $("work-canvas"));
     const { key, metrics } = classify(samples);
     state.faceBox = samples.faceBox;
-    state.season = SEASONS[key];
+    state.seasonKey = key;
     state.metrics = metrics;
     clearInterval(ticker);
     renderResult();
     show("screen-result");
   } catch (err) {
     clearInterval(ticker);
-    if (err.message === "no-face") {
-      $("error-title").textContent = "We couldn't find a face";
-      $("error-text").textContent =
-        "Make sure your face fills the frame and is clearly visible, then try again.";
-    } else if (err.message === "low-light") {
-      $("error-title").textContent = "The photo is too dark";
-      $("error-text").textContent =
-        "Move closer to a window or brighter daylight and try again — good light is everything here.";
-    } else {
-      $("error-title").textContent = "Something went wrong";
-      $("error-text").textContent =
-        "The analysis couldn't finish. Check your connection (the face model loads once from the web) and try again.";
-    }
+    state.errorKind =
+      err.message === "no-face" ? "noFace" : err.message === "low-light" ? "lowLight" : "generic";
+    applyError();
     show("screen-error");
   }
+}
+
+function applyError() {
+  const kind = state.errorKind || "generic";
+  $("error-title").textContent = t(`error.${kind}.title`);
+  $("error-text").textContent = t(`error.${kind}.text`);
 }
 
 /* ---------------- result ---------------- */
 
 function renderResult() {
-  const s = state.season;
+  const s = localizeSeason(state.seasonKey, getLang());
+  if (!s) return;
   $("season-name").textContent = s.name;
   $("season-desc").textContent = s.desc;
 
@@ -143,18 +156,17 @@ function renderResult() {
     .map((sw) => `<div class="swatch" style="background:${sw.hex}"></div>`)
     .join("");
   $("swatch-labels").innerHTML = s.swatches
-    .map((sw) => `<span>${sw.label}</span>`)
+    .map((sw) => `<span>${esc(sw.label)}</span>`)
     .join("");
 
   const m = state.metrics;
   $("traits").innerHTML = `
-    <div class="trait"><b>Undertone</b><span>${m.undertone}</span></div>
-    <div class="trait"><b>Depth</b><span>${m.value}</span></div>
-    <div class="trait"><b>Clarity</b><span>${m.chroma}</span></div>
+    <div class="trait"><b>${t("result.trait.undertone")}</b><span>${t(`metric.undertone.${m.undertone}`)}</span></div>
+    <div class="trait"><b>${t("result.trait.depth")}</b><span>${t(`metric.value.${m.value}`)}</span></div>
+    <div class="trait"><b>${t("result.trait.clarity")}</b><span>${t(`metric.chroma.${m.chroma}`)}</span></div>
   `;
 
-  // Retint the ambient blobs with the user's own palette — the app
-  // itself dresses in their colors from this point on.
+  // Retint the ambient blobs with the user's own palette.
   const [c1, c2, c3, c4] = s.swatches.map((sw) => sw.hex);
   document.querySelector(".blob.b1").style.background =
     `conic-gradient(from 120deg, ${c1}, ${c2} 30%, ${c3} 60%, ${c4} 85%, ${c1})`;
@@ -162,35 +174,87 @@ function renderResult() {
 
 /* ---------------- compare ---------------- */
 
-$("btn-to-compare").addEventListener("click", () => {
+function enterCompare() {
+  const season = localizeSeason(state.seasonKey, getLang());
+  if (!season) return;
   const toggle = $("compare-toggle");
   toggle.innerHTML = "";
-  state.season.compare.forEach((c, idx) => {
+  season.compare.forEach((c, idx) => {
     const dot = document.createElement("button");
-    dot.className = "swatch-dot" + (idx === 0 ? " active" : "");
+    dot.className = "swatch-dot" + (idx === state.compareIdx ? " active" : "");
     dot.style.background = c.hex;
     dot.setAttribute("role", "radio");
-    dot.setAttribute("aria-checked", idx === 0 ? "true" : "false");
+    dot.setAttribute("aria-checked", idx === state.compareIdx ? "true" : "false");
     dot.setAttribute("aria-label", c.note);
     dot.addEventListener("click", () => selectShade(idx));
     toggle.appendChild(dot);
   });
-  selectShade(0);
+  selectShade(state.compareIdx);
+}
+
+$("btn-to-compare").addEventListener("click", () => {
+  state.compareIdx = 0;
+  enterCompare();
   show("screen-compare");
 });
 
 function selectShade(idx) {
-  const c = state.season.compare[idx];
+  state.compareIdx = idx;
+  const season = localizeSeason(state.seasonKey, getLang());
+  const c = season.compare[idx];
   document.querySelectorAll(".swatch-dot").forEach((d, i) => {
     d.classList.toggle("active", i === idx);
     d.setAttribute("aria-checked", i === idx ? "true" : "false");
   });
   renderCompare($("compare-canvas"), state.photo, state.faceBox, c.hex);
   const firstWord = c.note.split(" ")[0];
-  $("verdict").innerHTML = `<b>${firstWord}</b>${c.note.slice(firstWord.length)}`;
+  $("verdict").innerHTML = `<b>${esc(firstWord)}</b>${esc(c.note.slice(firstWord.length))}`;
 }
 
-/* ---------------- retake / restart ---------------- */
+/* ---------------- info: privacy / terms / about ---------------- */
+
+function renderInfo(title, bodyHtml) {
+  $("info-title").textContent = title;
+  const body = $("info-body");
+  body.innerHTML = bodyHtml;
+  body.scrollTop = 0;
+}
+
+function openDoc(docKey) {
+  const byLang = LEGAL[docKey][getLang()];
+  const doc = byLang && byLang.sections && byLang.sections.length ? byLang : LEGAL[docKey].en;
+  const html = doc.sections
+    .map(
+      (s) =>
+        (s.heading ? `<h2>${esc(s.heading)}</h2>` : "") +
+        `<p>${esc(s.body).replace(/\n+/g, "<br><br>")}</p>`
+    )
+    .join("");
+  if (activeScreenId() !== "screen-info") state.infoReturn = activeScreenId();
+  state.infoDoc = docKey;
+  renderInfo(doc.title, html);
+  show("screen-info");
+}
+
+function openAbout() {
+  if (activeScreenId() !== "screen-info") state.infoReturn = activeScreenId();
+  state.infoDoc = "about";
+  const html = `<p>${esc(t("about.body"))}</p><p class="info-muted">${esc(t("about.contact"))}</p>`;
+  renderInfo(t("about.title"), html);
+  show("screen-info");
+}
+
+document.querySelectorAll("[data-doc]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const d = btn.dataset.doc;
+    if (d === "about") openAbout();
+    else openDoc(d);
+  });
+});
+
+$("btn-info-back").addEventListener("click", () => show(state.infoReturn));
+
+/* ---------------- retake / restart / delete ---------------- */
 
 function resetToCapture() {
   state.photo = null;
@@ -204,26 +268,20 @@ $("btn-error-retry").addEventListener("click", resetToCapture);
 $("btn-start-over").addEventListener("click", () => {
   state.photo = null;
   state.faceBox = null;
-  state.season = null;
+  state.seasonKey = null;
   show("screen-consent");
 });
 
-/* ---------------- delete analysis (explicit privacy control) ---------------- */
-
 // Nothing is ever persisted (no backend, no storage — see PRIVACY.md), so
-// "delete" means: purge every trace of the analysis from memory and from the
-// screen right now, rather than waiting for the page to close. This clears the
-// most sensitive artifacts — the photo and the face rendered onto the compare
-// canvas — immediately.
+// "delete" purges every trace of the analysis from memory and the screen now.
 function deleteAnalysis() {
   stopCamera();
 
   state.photo = null;
   state.faceBox = null;
-  state.season = null;
+  state.seasonKey = null;
   state.metrics = null;
 
-  // Wipe the face rendered onto the compare canvas.
   const canvas = $("compare-canvas");
   if (canvas) {
     const ctx = canvas.getContext("2d");
@@ -232,7 +290,6 @@ function deleteAnalysis() {
     canvas.removeAttribute("height");
   }
 
-  // Reset the result details so nothing lingers in the DOM.
   $("season-name").textContent = "—";
   $("season-desc").textContent = "";
   $("swatch-row").innerHTML = "";
@@ -241,12 +298,11 @@ function deleteAnalysis() {
   $("compare-toggle").innerHTML = "";
   $("verdict").textContent = "";
 
-  // Return the ambient background to its default (it had taken on the palette).
   document.querySelector(".blob.b1").style.background = "";
 
   closeConfirm();
   show("screen-consent");
-  showToast("Deleted. It only ever existed on this device — nothing was uploaded or stored.");
+  showToast(t("toast.deleted"));
 }
 
 function openConfirm() {
@@ -261,7 +317,6 @@ $("btn-delete-result").addEventListener("click", openConfirm);
 $("btn-delete-compare").addEventListener("click", openConfirm);
 $("confirm-cancel").addEventListener("click", closeConfirm);
 $("confirm-delete").addEventListener("click", deleteAnalysis);
-// Dismiss on backdrop click or Escape.
 $("confirm-overlay").addEventListener("click", (e) => {
   if (e.target === $("confirm-overlay")) closeConfirm();
 });
@@ -271,12 +326,28 @@ document.addEventListener("keydown", (e) => {
 
 let toastTimer;
 function showToast(message) {
-  const t = $("toast");
-  t.textContent = message;
-  t.classList.add("show");
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 4500);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 4500);
 }
+
+/* ---------------- language ---------------- */
+
+// When the language changes, re-translate static DOM (done by i18n) and
+// re-render any dynamic screen currently showing.
+onLangChange(() => {
+  const screen = activeScreenId();
+  if (state.errorKind) applyError();
+  if (state.seasonKey && screen === "screen-result") renderResult();
+  if (state.seasonKey && screen === "screen-compare") enterCompare();
+  if (screen === "screen-info" && state.infoDoc) {
+    state.infoDoc === "about" ? openAbout() : openDoc(state.infoDoc);
+  }
+});
+
+initI18n();
 
 /* ---------------- PWA ---------------- */
 

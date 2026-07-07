@@ -34,17 +34,43 @@ One-time setup on a fresh repo: **Settings → Pages → Build and deployment �
 
 ```
 www/                 the web app (deployed to GitHub Pages as-is)
-  index.html         all five screens in one document, module entry
+  index.html         all screens in one document, module entry
   css/styles.css     design tokens + all component styles
-  js/app.js          screen flow controller, camera lifecycle, state
+  js/app.js          screen flow controller, camera lifecycle, i18n wiring
   js/analysis.js     MediaPipe landmarks → skin/eye/hair color samples → Lab
-  js/classify.js     rule-based 12-season decision tree (warmth/depth/chroma)
-  js/palettes.js     the 12 seasons: copy, swatches, compare shades
+  js/classify.js     rule-based 12-season decision tree (returns metric keys)
+  js/palettes.js     the 12 seasons (hex + match); localizeSeason(key, lang)
   js/compare.js      canvas renderer: photo + colored drape + ambient tint
+  js/i18n.js         language detect / persist / apply; STRINGS lookup
+  js/strings.js      EN UI strings (+ strings.bg.js = BG, generated)
+  js/seasons.bg.js   Bulgarian season text (generated)
+  js/legalContent.js Privacy Policy + Terms, EN + BG (generated)
+  PRIVACY.md         privacy policy (URL target, mirrors legalContent EN)
 ios/                 Capacitor 8 iOS wrapper (SPM, no CocoaPods)
 assets/brand/        Season Drape master SVG
-docs/                TestFlight setup guide
+docs/                TestFlight setup + App Store submission guides
 ```
+
+## Languages
+
+The app is bilingual (English / Bulgarian). Language is chosen automatically:
+the device's **primary** language decides the default — Bulgarian if the device
+is set to Bulgarian, English otherwise — and a persistent БГ/EN toggle lets the
+user override it (the choice is kept in `localStorage`, a non-personal setting).
+EN strings in `strings.js` are authoritative; BG lives in the generated
+`*.bg.js` files and falls back to EN for any missing key.
+
+## Legal & App Store
+
+- **In-app**: Privacy Policy, Terms of Use, and About are reachable from the
+  consent screen footer, rendered from `js/legalContent.js` (EN + BG).
+- **Privacy URL**: `https://apporigindev.github.io/seasonist/PRIVACY.md`.
+- **Submission**: copy-paste listing text, App Privacy answers, and the
+  "create the app" checklist are in
+  [docs/app-store-submission.md](docs/app-store-submission.md).
+- Provider identity in the legal docs (ЕИК 206649741 / VAT BG206649741 /
+  development@app-origin.com) and the `[EFFECTIVE DATE]` placeholders **must be
+  confirmed/filled by the owner** before publishing.
 
 ## iOS / TestFlight
 

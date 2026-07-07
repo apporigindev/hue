@@ -295,6 +295,95 @@ body{
   .confirm-overlay, .confirm-card{ animation: none; }
 }
 
+/* ---------- language toggle ---------- */
+
+.lang-toggle{
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  right: calc(env(safe-area-inset-right, 0px) + 18px);
+  z-index: 40;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(251,249,246,0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+}
+.lang-toggle button{
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .2s var(--ease), color .2s var(--ease);
+}
+.lang-toggle button.active{ background: var(--ink); color: var(--white); }
+.lang-toggle button:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---------- legal links (consent footer) ---------- */
+
+.legal-links{
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+}
+.link{
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 2px;
+}
+.link:hover{ color: var(--ink); }
+.link:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 3px; }
+
+/* ---------- info screen (privacy / terms / about) ---------- */
+
+.info-back{
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 18px;
+}
+.info-back:hover{ color: var(--ink); }
+.info-back:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 3px; }
+
+.info-body{
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.info-body h2{
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 22px 0 8px;
+}
+.info-body h2:first-child{ margin-top: 0; }
+.info-body p{ margin-bottom: 4px; }
+.info-body .info-muted{ color: var(--mauve); font-size: 12px; margin-top: 14px; }
+
 /* ---------- capture ---------- */
 
 .capture-frame{

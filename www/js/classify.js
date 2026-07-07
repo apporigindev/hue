@@ -66,9 +66,10 @@ export function classify({ skin, eyes, hair }) {
       warmth: round2(warmth),
       depth: round2(depth),
       brightness: round2(brightness),
-      undertone: isWarm ? "Warm" : isCool ? "Cool" : "Neutral",
-      value: isLight ? "Light" : isDark ? "Deep" : "Medium",
-      chroma: isBright ? "Bright" : isSoft ? "Soft" : "Balanced",
+      // i18n keys (translated for display in app.js) — not display strings.
+      undertone: isWarm ? "warm" : isCool ? "cool" : "neutral",
+      value: isLight ? "light" : isDark ? "deep" : "medium",
+      chroma: isBright ? "bright" : isSoft ? "soft" : "balanced",
     },
   };
 }
