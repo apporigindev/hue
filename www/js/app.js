@@ -208,6 +208,76 @@ $("btn-start-over").addEventListener("click", () => {
   show("screen-consent");
 });
 
+/* ---------------- delete analysis (explicit privacy control) ---------------- */
+
+// Nothing is ever persisted (no backend, no storage — see PRIVACY.md), so
+// "delete" means: purge every trace of the analysis from memory and from the
+// screen right now, rather than waiting for the page to close. This clears the
+// most sensitive artifacts — the photo and the face rendered onto the compare
+// canvas — immediately.
+function deleteAnalysis() {
+  stopCamera();
+
+  state.photo = null;
+  state.faceBox = null;
+  state.season = null;
+  state.metrics = null;
+
+  // Wipe the face rendered onto the compare canvas.
+  const canvas = $("compare-canvas");
+  if (canvas) {
+    const ctx = canvas.getContext("2d");
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.removeAttribute("width");
+    canvas.removeAttribute("height");
+  }
+
+  // Reset the result details so nothing lingers in the DOM.
+  $("season-name").textContent = "—";
+  $("season-desc").textContent = "";
+  $("swatch-row").innerHTML = "";
+  $("swatch-labels").innerHTML = "";
+  $("traits").innerHTML = "";
+  $("compare-toggle").innerHTML = "";
+  $("verdict").textContent = "";
+
+  // Return the ambient background to its default (it had taken on the palette).
+  document.querySelector(".blob.b1").style.background = "";
+
+  closeConfirm();
+  show("screen-consent");
+  showToast("Deleted. It only ever existed on this device — nothing was uploaded or stored.");
+}
+
+function openConfirm() {
+  $("confirm-overlay").hidden = false;
+  $("confirm-delete").focus();
+}
+function closeConfirm() {
+  $("confirm-overlay").hidden = true;
+}
+
+$("btn-delete-result").addEventListener("click", openConfirm);
+$("btn-delete-compare").addEventListener("click", openConfirm);
+$("confirm-cancel").addEventListener("click", closeConfirm);
+$("confirm-delete").addEventListener("click", deleteAnalysis);
+// Dismiss on backdrop click or Escape.
+$("confirm-overlay").addEventListener("click", (e) => {
+  if (e.target === $("confirm-overlay")) closeConfirm();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("confirm-overlay").hidden) closeConfirm();
+});
+
+let toastTimer;
+function showToast(message) {
+  const t = $("toast");
+  t.textContent = message;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 4500);
+}
+
 /* ---------------- PWA ---------------- */
 
 if ("serviceWorker" in navigator) {
