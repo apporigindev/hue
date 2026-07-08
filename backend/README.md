@@ -160,9 +160,11 @@ client or persisted.
 - **Feature only advertised when verifiable:** `/health.tryonAvailable` requires
   a provider AND a usable verification path (App Store Server API creds), so
   users are never shown a paid tier whose purchases can't be verified.
-- **On-device CORS:** the app enables CapacitorHttp (native fetch) so try-on
-  works from the Capacitor WebView without CORS. `CORS_ORIGINS` is only for a web
-  client / browser QA.
+- **On-device CORS:** the backend always allows the Capacitor WebView origins
+  (`capacitor://localhost`, `localhost`), so try-on works on a real device
+  out of the box; `CORS_ORIGINS` adds any extra web origins. (We deliberately do
+  NOT enable CapacitorHttp — it would route MediaPipe's binary model download
+  through the native bridge and risk the on-device face detection.)
 - **Abuse limits:** per-IP rate limit on `/v1/tryon`; the endpoint refuses to run
   in production without `APP_API_KEY`; infra/verify failures return a retryable
   503 (not a misleading "not entitled").

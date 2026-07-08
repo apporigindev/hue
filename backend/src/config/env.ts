@@ -71,11 +71,10 @@ const schema = z.object({
   // can be exercised without a real StoreKit transaction. Ignored in production.
   TRYON_DEV_BYPASS: boolish(false),
 
-  // Comma-separated allowlist of browser origins for CORS. NOTE: the Capacitor
-  // WebView calls from capacitor://localhost (iOS) / http://localhost (Android),
-  // so it IS cross-origin — the app enables CapacitorHttp to route fetch natively
-  // and bypass CORS. Set this only for a web client or local browser QA; "*"
-  // allows any origin (dev only). Empty (default) = no CORS headers.
+  // EXTRA CORS origins (comma-separated) for a web client or local browser QA.
+  // The Capacitor app's own webview origins (capacitor://localhost, localhost)
+  // are ALWAYS allowed by the backend, so try-on works on-device without setting
+  // this. "*" allows any origin (dev only).
   CORS_ORIGINS: z.string().optional(),
 });
 

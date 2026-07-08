@@ -6,10 +6,5 @@
   "ios": {
     "contentInset": "automatic",
     "backgroundColor": "#ECE7E1"
-  },
-  "plugins": {
-    "CapacitorHttp": {
-      "enabled": true
-    }
   }
 }

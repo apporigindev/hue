@@ -67,25 +67,32 @@ const verifyBody = z.object({
 export function buildApp(deps: Deps): FastifyInstance {
   const app = Fastify({ logger: env.NODE_ENV !== "test" });
 
-  // Optional CORS. The Capacitor app bypasses CORS via CapacitorHttp (native
-  // fetch), so this is only for a web client or local browser QA.
-  const corsOrigins = (env.CORS_ORIGINS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (corsOrigins.length) {
-    const allowAll = corsOrigins.includes("*");
-    app.addHook("onRequest", async (req, reply) => {
-      const origin = req.headers.origin;
-      if (origin && (allowAll || corsOrigins.includes(origin))) {
-        reply.header("access-control-allow-origin", origin);
-        reply.header("vary", "Origin");
-        reply.header("access-control-allow-headers", "content-type,x-api-key");
-        reply.header("access-control-allow-methods", "GET,POST,OPTIONS");
-      }
-      if (req.method === "OPTIONS") reply.code(204).send();
-    });
-  }
+  // CORS. The Capacitor WebView is cross-origin to the backend — it calls from
+  // capacitor://localhost (iOS) / http(s)://localhost (Android) — so the app's
+  // own webview origins are ALWAYS allowed (this is what makes try-on work on a
+  // real device). Extra origins (a web client, local browser QA) come from
+  // CORS_ORIGINS; "*" allows any (dev only).
+  const APP_WEBVIEW_ORIGINS = [
+    "capacitor://localhost",
+    "ionic://localhost",
+    "http://localhost",
+    "https://localhost",
+  ];
+  const corsOrigins = [
+    ...APP_WEBVIEW_ORIGINS,
+    ...(env.CORS_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+  ];
+  const allowAll = corsOrigins.includes("*");
+  app.addHook("onRequest", async (req, reply) => {
+    const origin = req.headers.origin;
+    if (origin && (allowAll || corsOrigins.includes(origin))) {
+      reply.header("access-control-allow-origin", origin);
+      reply.header("vary", "Origin");
+      reply.header("access-control-allow-headers", "content-type,x-api-key");
+      reply.header("access-control-allow-methods", "GET,POST,OPTIONS");
+    }
+    if (req.method === "OPTIONS") reply.code(204).send();
+  });
 
   // Optional shared-secret gate for app-facing routes.
   const requireApiKey = async (req: any, reply: any) => {
