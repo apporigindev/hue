@@ -14,6 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Apple requires apps to be built with the iOS 26 SDK (Xcode 26+). The
+      # runner ships several Xcodes; select the newest so uploads aren't
+      # rejected with a "built with the iOS 18.x SDK" validation error.
+      - name: Select the latest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XC" ]; then XC=$(ls -d /Applications/Xcode*.app | sort -V | tail -1); fi
+          echo "Selecting $XC"
+          sudo xcode-select -s "$XC/Contents/Developer"
+          xcodebuild -version
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
