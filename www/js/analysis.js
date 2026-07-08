@@ -92,15 +92,18 @@ export async function analyzeImage(imageSource, workCanvas) {
   ];
   const skin = robustAverage(skinPatches);
 
-  const eyes = robustAverage([
+  let eyes = robustAverage([
     sample(REGIONS.leftIris, Math.round(w * 0.004) || 2),
     sample(REGIONS.rightIris, Math.round(w * 0.004) || 2),
   ]);
+  // Invalid iris sample (closed eyes, glare, all pixels filtered) → neutral.
+  if (eyes.r + eyes.g + eyes.b < 3) eyes = { r: skin.r, g: skin.g, b: skin.b };
 
   // Hair: sample a band above the forehead landmark, if inside frame.
   const top = points[10];
-  const hairY = Math.max(0, top.y * h - h * 0.09);
-  const hair = averageColorAt(
+  const rawHairY = top.y * h - h * 0.09;
+  const hairY = Math.max(0, rawHairY);
+  const hairSample = averageColorAt(
     ctx,
     [
       { x: top.x * w, y: hairY },
@@ -111,6 +114,12 @@ export async function analyzeImage(imageSource, workCanvas) {
     w,
     h
   );
+  // If the band is off the top of the frame or has too few valid pixels — a
+  // hat, headscarf, shaved/receding hairline, or background — it isn't hair.
+  // Fall back to skin so a garbage sample can't drive the season (hair is 45%
+  // of the depth axis). See the analysis-pipeline report.
+  const hairReliable = rawHairY > 0 && hairSample.n >= 24;
+  const hair = hairReliable ? hairSample : { r: skin.r, g: skin.g, b: skin.b };
 
   // Basic quality gate: reject unusably dark photos.
   const skinLuma = 0.2126 * skin.r + 0.7152 * skin.g + 0.0722 * skin.b;
@@ -146,8 +155,8 @@ function averageColorAt(ctx, centers, radius, maxW, maxH) {
       r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
     }
   }
-  if (n === 0) return { r: 0, g: 0, b: 0 };
-  return { r: r / n, g: g / n, b: b / n };
+  if (n === 0) return { r: 0, g: 0, b: 0, n: 0 };
+  return { r: r / n, g: g / n, b: b / n, n };
 }
 
 /** Average a set of patches, discarding the outlier farthest from the mean. */

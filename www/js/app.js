@@ -147,6 +147,7 @@ function imageFingerprint(img) {
     h1 = Math.imul(h1 ^ d[i + 2], 0x01000193);
     h2 = Math.imul(h2 ^ d[i], 0x85ebca6b);
     h2 = Math.imul(h2 ^ d[i + 1], 0x85ebca6b);
+    h2 = Math.imul(h2 ^ d[i + 2], 0x85ebca6b);
   }
   return (h1 >>> 0).toString(16).padStart(8, "0") + (h2 >>> 0).toString(16).padStart(8, "0");
 }

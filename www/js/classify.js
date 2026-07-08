@@ -25,13 +25,16 @@ export function classify({ skin, eyes, hair }) {
      cool undertones toward pink/blue (higher a relative to b).   */
   const hueAngle = (Math.atan2(skinLab.b, skinLab.a) * 180) / Math.PI;
   // Typical skin hue angles run ~35° (cool/pink) to ~75° (warm/golden).
-  const warmth = clamp((hueAngle - 45) / 25, -1, 1); // -1 cool … +1 warm
+  // Quantize to a coarse grid (aligned to the ±0.12 boundary) BEFORE
+  // thresholding so sub-pixel sampling jitter can't flip a borderline face
+  // between warm and cool. Determinism, not tuning — see the pipeline report.
+  const warmth = quant(clamp((hueAngle - 45) / 25, -1, 1), 0.04); // -1 cool … +1 warm
   const isWarm = warmth > 0.12;
   const isCool = warmth < -0.12;
   // between: "neutral" — value & chroma decide the season group
 
   /* ---- 2. Value: combined depth of skin and hair ---- */
-  const depth = skinLab.L * 0.55 + hairLab.L * 0.45; // 0 dark … 100 light
+  const depth = quant(skinLab.L * 0.55 + hairLab.L * 0.45, 2); // 0 dark … 100 light
   const isLight = depth > 62;
   const isDark = depth < 38;
 
@@ -39,7 +42,7 @@ export function classify({ skin, eyes, hair }) {
   const skinChroma = Math.hypot(skinLab.a, skinLab.b);
   const contrast =
     Math.abs(skinLab.L - hairLab.L) * 0.6 + Math.abs(skinLab.L - eyeLab.L) * 0.4;
-  const brightness = skinChroma * 0.5 + contrast * 0.5;
+  const brightness = quant(skinChroma * 0.5 + contrast * 0.5, 2);
   const isBright = brightness > 34;
   const isSoft = brightness < 24;
 
@@ -76,3 +79,5 @@ export function classify({ skin, eyes, hair }) {
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const round2 = (v) => Math.round(v * 100) / 100;
+// Snap a metric to a coarse grid so near-identical inputs classify identically.
+const quant = (v, step) => Math.round(v / step) * step;
