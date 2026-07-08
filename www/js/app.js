@@ -12,8 +12,9 @@ import { localizeSeason } from "./palettes.js";
 import { renderCompare } from "./compare.js";
 import { LEGAL } from "./legalContent.js";
 import { t, getLang, initI18n, applyStatic, onLangChange } from "./i18n.js";
-import { initPurchases, getUnlockPrice, buyUnlock } from "./purchase.js";
+import { initPurchases, getUnlockPrice, buyUnlock, getTryonPrice, buyTryon } from "./purchase.js";
 import { listAnalyses, saveAnalysis, getAnalysis, newId } from "./savedAnalyses.js";
+import { tryonAvailable as checkTryonAvailable, generateTryon } from "./tryonApi.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,11 +24,15 @@ const state = {
   seasonKey: null,   // key into SEASONS; localized to the active language at render
   metrics: null,     // classification metrics (keys, translated for display)
   stream: null,      // active camera MediaStream
-  compareIdx: 0,     // selected compare shade
+  goodIdx: 0,        // selected flattering shade (left compare panel)
+  badIdx: 0,         // selected clashing shade (right compare panel)
   errorKind: null,   // 'noFace' | 'lowLight' | 'generic' — for re-translation
   infoDoc: null,     // 'privacy' | 'terms' | 'about' — for re-translation
   infoReturn: "screen-consent",
   unlocked: false,   // has the current analysis been paid for?
+  tryonAvailable: false, // is the paid "See it for real" tier live (backend up)?
+  tryonImages: null, // generated try-on results for the current session
+  tryonProof: null,  // { transactionId?, signedTransaction? } from the pack purchase
 };
 
 let unlockPrice = "€4.99"; // localized store price, resolved on init
@@ -242,6 +247,10 @@ function applyUnlockState() {
   $("hero-swatches").hidden = on; // teaser hides once the full palette shows
   $("btn-to-compare").hidden = !(on && state.photo);
   $("btn-library").hidden = listAnalyses().length === 0;
+  // "See it for real" appears only once unlocked, with a live photo, and only
+  // when the backend tier is actually available.
+  $("tryon-card").hidden = !(on && state.photo && state.tryonAvailable);
+  if (on && state.photo) ensureTryonChecked();
 }
 
 /* ---------------- unlock (pay per analysis) ---------------- */
@@ -325,44 +334,265 @@ $("btn-library").addEventListener("click", () => {
 $("btn-library-back").addEventListener("click", () => show("screen-consent"));
 $("btn-library-new").addEventListener("click", resetToCapture);
 
-/* ---------------- compare ---------------- */
+/* ---------------- compare (side-by-side) ---------------- */
+
+// Split a season's compare shades into the flattering (match) and clashing
+// (non-match) sets that drive the two panels.
+function splitCompare(season) {
+  const good = [], bad = [];
+  season.compare.forEach((c) => (c.match ? good : bad).push(c));
+  return { good, bad };
+}
+
+function buildToggle(container, shades, activeIdx, onPick) {
+  container.innerHTML = "";
+  shades.forEach((c, idx) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "swatch-dot" + (idx === activeIdx ? " active" : "");
+    dot.style.background = c.hex;
+    dot.setAttribute("role", "radio");
+    dot.setAttribute("aria-checked", idx === activeIdx ? "true" : "false");
+    dot.setAttribute("aria-label", c.note);
+    dot.addEventListener("click", () => onPick(idx));
+    container.appendChild(dot);
+  });
+}
+
+function markActive(toggleId, idx) {
+  $(toggleId).querySelectorAll(".swatch-dot").forEach((d, i) => {
+    d.classList.toggle("active", i === idx);
+    d.setAttribute("aria-checked", i === idx ? "true" : "false");
+  });
+}
+
+function renderGood() {
+  const { good } = splitCompare(localizeSeason(state.seasonKey, getLang()));
+  const c = good[state.goodIdx] || good[0];
+  if (!c) return;
+  renderCompare($("compare-canvas-good"), state.photo, state.faceBox, c.hex);
+  $("cap-note-good").textContent = c.note;
+  markActive("toggle-good", state.goodIdx);
+}
+
+function renderBad() {
+  const { bad } = splitCompare(localizeSeason(state.seasonKey, getLang()));
+  const c = bad[state.badIdx] || bad[0];
+  if (!c) return;
+  renderCompare($("compare-canvas-bad"), state.photo, state.faceBox, c.hex);
+  $("cap-note-bad").textContent = c.note;
+  markActive("toggle-bad", state.badIdx);
+}
 
 function enterCompare() {
   const season = localizeSeason(state.seasonKey, getLang());
   if (!season) return;
-  const toggle = $("compare-toggle");
-  toggle.innerHTML = "";
-  season.compare.forEach((c, idx) => {
-    const dot = document.createElement("button");
-    dot.className = "swatch-dot" + (idx === state.compareIdx ? " active" : "");
-    dot.style.background = c.hex;
-    dot.setAttribute("role", "radio");
-    dot.setAttribute("aria-checked", idx === state.compareIdx ? "true" : "false");
-    dot.setAttribute("aria-label", c.note);
-    dot.addEventListener("click", () => selectShade(idx));
-    toggle.appendChild(dot);
-  });
-  selectShade(state.compareIdx);
+  const { good, bad } = splitCompare(season);
+  if (state.goodIdx >= good.length) state.goodIdx = 0;
+  if (state.badIdx >= bad.length) state.badIdx = 0;
+  buildToggle($("toggle-good"), good, state.goodIdx, (i) => { state.goodIdx = i; renderGood(); });
+  buildToggle($("toggle-bad"), bad, state.badIdx, (i) => { state.badIdx = i; renderBad(); });
+  renderGood();
+  renderBad();
 }
 
 $("btn-to-compare").addEventListener("click", () => {
   if (!state.unlocked || !state.photo) return; // premium + needs the live photo
-  state.compareIdx = 0;
+  state.goodIdx = 0;
+  state.badIdx = 0;
   enterCompare();
   show("screen-compare");
 });
 
-function selectShade(idx) {
-  state.compareIdx = idx;
-  const season = localizeSeason(state.seasonKey, getLang());
-  const c = season.compare[idx];
-  document.querySelectorAll(".swatch-dot").forEach((d, i) => {
-    d.classList.toggle("active", i === idx);
-    d.setAttribute("aria-checked", i === idx ? "true" : "false");
-  });
-  renderCompare($("compare-canvas"), state.photo, state.faceBox, c.hex);
-  const firstWord = c.note.split(" ")[0];
-  $("verdict").innerHTML = `<b>${esc(firstWord)}</b>${esc(c.note.slice(firstWord.length))}`;
+/* ---------------- "See it for real" (generative try-on) ---------------- */
+
+let tryonPrice = "€8.99";
+let tryonChecked = false;
+let tryonProbeInFlight = false;
+
+// Backend availability probe. The feature stays hidden unless the backend is
+// configured AND reports a live, verifiable provider (see tryonApi + config).
+// We latch ONLY on a positive result, so a transient failure (cold start, no
+// network at launch) doesn't hide the feature for the whole session — a later
+// result-screen visit re-probes.
+async function ensureTryonChecked() {
+  if (tryonChecked || tryonProbeInFlight) return;
+  tryonProbeInFlight = true;
+  try {
+    const ok = await checkTryonAvailable();
+    state.tryonAvailable = ok;
+    if (ok) tryonChecked = true;
+  } catch {
+    state.tryonAvailable = false;
+  } finally {
+    tryonProbeInFlight = false;
+  }
+  if (activeScreenId() === "screen-result") applyUnlockState();
+}
+
+/** A JPEG data URI of the current photo, downscaled to keep the payload small. */
+function photoDataUri(maxDim = 1024) {
+  const img = state.photo;
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  const cw = Math.max(1, Math.round(w * scale));
+  const ch = Math.max(1, Math.round(h * scale));
+  const c = document.createElement("canvas");
+  c.width = cw;
+  c.height = ch;
+  c.getContext("2d").drawImage(img, 0, 0, cw, ch);
+  return c.toDataURL("image/jpeg", 0.9);
+}
+
+$("btn-tryon").addEventListener("click", () => {
+  if (!(state.unlocked && state.photo && state.tryonAvailable)) return;
+  $("tryon-consent-overlay").hidden = false;
+  $("tryon-consent-agree").focus();
+});
+
+function closeTryonConsent() {
+  $("tryon-consent-overlay").hidden = true;
+}
+$("tryon-consent-cancel").addEventListener("click", closeTryonConsent);
+$("tryon-consent-overlay").addEventListener("click", (e) => {
+  if (e.target === $("tryon-consent-overlay")) closeTryonConsent();
+});
+$("tryon-consent-privacy").addEventListener("click", (e) => {
+  e.preventDefault();
+  closeTryonConsent();
+  openDoc("privacy");
+});
+$("tryon-consent-agree").addEventListener("click", onTryonConsentAgree);
+
+// Record the (non-personal) consent decision + policy version for audit.
+function recordTryonConsent() {
+  try {
+    localStorage.setItem(
+      "seasonist_tryon_consent",
+      JSON.stringify({ acceptedAt: new Date().toISOString(), version: "1" })
+    );
+  } catch {
+    /* non-fatal */
+  }
+}
+
+async function onTryonConsentAgree() {
+  closeTryonConsent();
+  recordTryonConsent();
+  const btn = $("btn-tryon");
+  btn.disabled = true;
+  try {
+    const res = await buyTryon();
+    if (!res || !res.ok) {
+      if (res && res.cancelled) showToast(t("unlock.cancelled"));
+      return;
+    }
+    state.tryonProof = {
+      transactionId: res.transactionId || null,
+      signedTransaction: res.signedTransaction || null,
+    };
+    await runTryon();
+  } catch {
+    showToast(t("tryon.err.generic"));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function setTryonState(name) {
+  $("tryon-generating").hidden = name !== "generating";
+  $("tryon-gallery").hidden = name !== "gallery";
+  $("tryon-error").hidden = name !== "error";
+}
+
+// Generate (or re-generate) the try-on images with the current proof. A failed
+// render does NOT consume the purchase server-side, so retry reuses the proof.
+async function runTryon() {
+  if (!state.photo || !state.tryonProof) return;
+  show("screen-tryon");
+  setTryonState("generating");
+  try {
+    const season = localizeSeason(state.seasonKey, getLang());
+    const colors = season.swatches.slice(0, 5).map((sw) => ({ name: sw.label, hex: sw.hex }));
+    const images = await generateTryon({
+      photo: photoDataUri(1024),
+      season: season.name,
+      colors,
+      proof: state.tryonProof,
+    });
+    if (!images.length) throw new Error("empty");
+    state.tryonImages = images;
+    renderTryonGallery(images);
+    setTryonState("gallery");
+  } catch (err) {
+    $("tryon-error-text").textContent = tryonErrorText(err);
+    setTryonState("error");
+  }
+}
+
+function renderTryonGallery(images) {
+  const el = $("tryon-gallery");
+  el.replaceChildren();
+  for (const im of images) {
+    const fig = document.createElement("figure");
+    fig.className = "tryon-item";
+    const img = document.createElement("img");
+    img.src = im.dataUrl;
+    img.alt = im.colorName;
+    img.loading = "lazy";
+    const cap = document.createElement("figcaption");
+    cap.textContent = im.colorName;
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "tryon-save";
+    save.textContent = t("tryon.save");
+    save.addEventListener("click", () => saveImage(im.dataUrl, im.colorName));
+    fig.append(img, cap, save);
+    el.append(fig);
+  }
+}
+
+async function saveImage(dataUrl, name) {
+  const filename = `seasonist-${String(name).toLowerCase().replace(/\s+/g, "-")}.jpg`;
+  try {
+    if (navigator.share && navigator.canShare) {
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return;
+      }
+    }
+  } catch {
+    /* fall through to download */
+  }
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
+}
+
+function tryonErrorText(err) {
+  const code = err && err.code;
+  if (code === "already_used") return t("tryon.err.used");
+  if (code === "attempts_exhausted") return t("tryon.err.exhausted");
+  if (code === "not_entitled") return t("tryon.err.entitle");
+  if (code === "tryon_unavailable") return t("tryon.err.unavailable");
+  if (code === "rate_limited") return t("tryon.err.busy");
+  if (code === "image_too_large") return t("tryon.err.image");
+  return t("tryon.err.generic"); // generation_failed, bad_request, network → retryable
+}
+
+$("btn-tryon-retry").addEventListener("click", runTryon);
+$("btn-tryon-back").addEventListener("click", () => show("screen-result"));
+
+/** Clear any generated try-on results from memory + the screen. */
+function clearTryon() {
+  state.tryonImages = null;
+  state.tryonProof = null;
+  const g = $("tryon-gallery");
+  if (g) g.replaceChildren();
 }
 
 /* ---------------- info: privacy / terms / about ---------------- */
@@ -414,6 +644,7 @@ function resetToCapture() {
   state.photo = null;
   state.faceBox = null;
   state.unlocked = false;
+  clearTryon();
   show("screen-capture");
   startCamera();
 }
@@ -425,6 +656,7 @@ $("btn-start-over").addEventListener("click", () => {
   state.faceBox = null;
   state.seasonKey = null;
   state.unlocked = false;
+  clearTryon();
   show("screen-consent");
 });
 
@@ -438,22 +670,26 @@ function deleteAnalysis() {
   state.seasonKey = null;
   state.metrics = null;
   state.unlocked = false;
+  clearTryon();
 
-  const canvas = $("compare-canvas");
-  if (canvas) {
+  ["compare-canvas-good", "compare-canvas-bad"].forEach((id) => {
+    const canvas = $(id);
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.removeAttribute("width");
     canvas.removeAttribute("height");
-  }
+  });
 
   $("season-name").textContent = "—";
   $("season-desc").textContent = "";
   $("swatch-row").innerHTML = "";
   $("swatch-labels").innerHTML = "";
   $("traits").innerHTML = "";
-  $("compare-toggle").innerHTML = "";
-  $("verdict").textContent = "";
+  $("toggle-good").innerHTML = "";
+  $("toggle-bad").innerHTML = "";
+  $("cap-note-good").textContent = "";
+  $("cap-note-bad").textContent = "";
 
   document.querySelector(".blob.b1").style.background = "";
 
@@ -499,6 +735,7 @@ onLangChange(() => {
   if (state.errorKind) applyError();
   if (state.seasonKey && screen === "screen-result") renderResult();
   if (state.seasonKey && screen === "screen-compare") enterCompare();
+  if (screen === "screen-tryon" && state.tryonImages) renderTryonGallery(state.tryonImages);
   if (screen === "screen-library") renderLibrary();
   if (screen === "screen-info" && state.infoDoc) {
     state.infoDoc === "about" ? openAbout() : openDoc(state.infoDoc);
@@ -517,6 +754,16 @@ initPurchases()
     if (el) el.textContent = p;
   })
   .catch(() => {});
+
+// Resolve the try-on pack price and probe whether the tier is live.
+getTryonPrice()
+  .then((p) => {
+    tryonPrice = p;
+    const el = $("tryon-price");
+    if (el) el.textContent = p;
+  })
+  .catch(() => {});
+ensureTryonChecked();
 
 /* ---------------- demo / testing shortcut ---------------- */
 

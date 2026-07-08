@@ -16,6 +16,9 @@ import { toEntitlement } from "./lib/entitlement.js";
 import { AppleNotConfiguredError, type AppleResult } from "./lib/apple.js";
 import { GoogleNotConfiguredError, type GoogleResult } from "./lib/google.js";
 import type { SubscriptionStore } from "./lib/store.js";
+import { runTryOn, TryOnError } from "./lib/tryon/service.js";
+import type { TryOnProvider } from "./lib/tryon/provider.js";
+import type { ConsumedStore } from "./lib/tryon/consumed.js";
 
 export interface Deps {
   store: SubscriptionStore;
@@ -26,6 +29,32 @@ export interface Deps {
   verifyGoogleSubscription: (purchaseToken: string) => Promise<GoogleResult>;
   decodeGoogleNotification: (body: unknown) => { purchaseToken: string | null; productId: string | null };
   googleEnabled: boolean;
+  // Optional: the generative "See it for real" try-on tier. When present, the
+  // /v1/tryon route is registered and /health reports whether a provider is
+  // configured (the app feature-flags on that).
+  tryon?: {
+    provider: TryOnProvider | null;
+    // Whether a usable purchase-verification path exists. /health advertises the
+    // feature only when a provider AND this are present, so the app never shows a
+    // paid tier whose purchases can't be verified.
+    verifyReady: boolean;
+    consumed: ConsumedStore;
+    verifyTransactionId?: (transactionId: string) => Promise<AppleResult>;
+    productId: string;
+    maxColors: number;
+    maxAttempts: number;
+    maxImageBytes: number;
+    ratePerMin: number;
+    devBypass: boolean;
+    log?: (msg: string, err?: unknown) => void;
+  };
+}
+
+/** Approximate decoded byte size of a base64 data URI (4 b64 chars → 3 bytes). */
+function estimateDecodedBytes(dataUri: string): number {
+  const comma = dataUri.indexOf(",");
+  const b64 = comma >= 0 ? dataUri.slice(comma + 1) : dataUri;
+  return Math.floor((b64.length * 3) / 4);
 }
 
 const verifyBody = z.object({
@@ -38,6 +67,26 @@ const verifyBody = z.object({
 export function buildApp(deps: Deps): FastifyInstance {
   const app = Fastify({ logger: env.NODE_ENV !== "test" });
 
+  // Optional CORS. The Capacitor app bypasses CORS via CapacitorHttp (native
+  // fetch), so this is only for a web client or local browser QA.
+  const corsOrigins = (env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (corsOrigins.length) {
+    const allowAll = corsOrigins.includes("*");
+    app.addHook("onRequest", async (req, reply) => {
+      const origin = req.headers.origin;
+      if (origin && (allowAll || corsOrigins.includes(origin))) {
+        reply.header("access-control-allow-origin", origin);
+        reply.header("vary", "Origin");
+        reply.header("access-control-allow-headers", "content-type,x-api-key");
+        reply.header("access-control-allow-methods", "GET,POST,OPTIONS");
+      }
+      if (req.method === "OPTIONS") reply.code(204).send();
+    });
+  }
+
   // Optional shared-secret gate for app-facing routes.
   const requireApiKey = async (req: any, reply: any) => {
     if (!env.APP_API_KEY) return;
@@ -46,7 +95,12 @@ export function buildApp(deps: Deps): FastifyInstance {
     }
   };
 
-  app.get("/health", async () => ({ ok: true, service: "seasonist-subscriptions" }));
+  app.get("/health", async () => ({
+    ok: true,
+    service: "seasonist-subscriptions",
+    // Advertise try-on only when it can actually be delivered AND verified.
+    tryonAvailable: !!deps.tryon?.provider && !!deps.tryon?.verifyReady,
+  }));
 
   app.post("/v1/entitlement/verify", { preHandler: requireApiKey }, async (req, reply) => {
     const body = verifyBody.parse(req.body);
@@ -147,7 +201,75 @@ export function buildApp(deps: Deps): FastifyInstance {
     return reply.code(200).send({ ok: true });
   });
 
+  // ── "See it for real" generative try-on ───────────────────────────
+  if (deps.tryon) {
+    const tryon = deps.tryon;
+
+    // Basic per-IP flood protection (single-instance in-memory sliding window).
+    const hits = new Map<string, number[]>();
+    const rateLimit = async (req: any, reply: any) => {
+      const now = Date.now();
+      const ip = req.ip || "unknown";
+      const win = (hits.get(ip) ?? []).filter((t) => now - t < 60_000);
+      if (win.length >= tryon.ratePerMin) {
+        return reply.code(429).send({ error: "rate_limited" });
+      }
+      win.push(now);
+      hits.set(ip, win);
+      if (hits.size > 5000) hits.clear(); // crude cap to bound memory
+    };
+
+    const tryonBody = z.object({
+      appUserId: z.string().min(1).max(128),
+      platform: z.enum(["apple", "google"]).default("apple"),
+      transactionId: z.string().max(64).optional(),
+      signedTransaction: z.string().optional(),
+      photo: z.string().min(1), // data URI — held in memory only, never stored
+      season: z.string().max(64).optional().default(""),
+      colors: z
+        .array(z.object({ name: z.string().min(1).max(48), hex: z.string().regex(/^#[0-9a-fA-F]{6}$/) }))
+        .min(1)
+        .max(12),
+    });
+
+    app.post(
+      "/v1/tryon",
+      { preHandler: [rateLimit, requireApiKey], bodyLimit: Math.ceil(tryon.maxImageBytes * 1.4) + 1_048_576 },
+      async (req, reply) => {
+        const body = tryonBody.parse(req.body);
+        if (estimateDecodedBytes(body.photo) > tryon.maxImageBytes) {
+          return reply.code(413).send({ error: "image_too_large" });
+        }
+        const images = await runTryOn(
+          {
+            provider: tryon.provider,
+            consumed: tryon.consumed,
+            verifyTransactionId: tryon.verifyTransactionId,
+            verifyAppleTransaction: deps.verifyAppleTransaction,
+            productId: tryon.productId,
+            maxColors: tryon.maxColors,
+            maxAttempts: tryon.maxAttempts,
+            devBypass: tryon.devBypass,
+            log: tryon.log,
+          },
+          {
+            appUserId: body.appUserId,
+            transactionId: body.transactionId,
+            signedTransaction: body.signedTransaction,
+            photo: body.photo,
+            season: body.season,
+            colors: body.colors,
+          }
+        );
+        return { images, meta: { count: images.length } };
+      }
+    );
+  }
+
   app.setErrorHandler((err, _req, reply) => {
+    if (err instanceof TryOnError) {
+      return reply.code(err.statusCode).send({ error: err.code, detail: err.message });
+    }
     if (err instanceof AppleNotConfiguredError || err instanceof GoogleNotConfiguredError) {
       return reply.code(503).send({ error: "purchase_verification_unavailable", detail: err.message });
     }

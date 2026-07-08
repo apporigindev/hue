@@ -609,3 +609,166 @@ body{
   min-height: 2.6em;
 }
 .verdict b{ color: var(--ink); font-weight:600; }
+
+/* ---------- compare: side-by-side ---------- */
+
+.compare-pair{
+  display:flex;
+  gap:12px;
+  margin-bottom:14px;
+}
+.compare-side{
+  flex:1 1 0;
+  min-width:0;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+}
+/* Each panel's photo is tighter than the standalone rule above. */
+.compare-side .compare-photo{
+  margin-bottom:10px;
+}
+.compare-cap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  text-align:center;
+  margin-bottom:10px;
+}
+.cap-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px; height:22px;
+  border-radius:50%;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  line-height:1;
+}
+.compare-cap.good .cap-badge{ background:#3f8f6b; }
+.compare-cap.bad  .cap-badge{ background:#c06a6a; }
+.cap-label{
+  font-family: var(--font-mono);
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  font-weight:600;
+}
+.compare-cap.good .cap-label{ color:#2f7a55; }
+.compare-cap.bad  .cap-label{ color:#a84f4f; }
+.cap-note{
+  font-size:11px;
+  line-height:1.3;
+  color: var(--ink-soft);
+}
+.compare-side .compare-toggle{
+  gap:8px;
+  margin-bottom:0;
+}
+.compare-side .swatch-dot{
+  width:24px; height:24px;
+}
+
+/* ---------- see it for real (generative try-on) ---------- */
+
+.tryon-card{
+  margin-top: 24px;
+  padding: 22px 20px;
+  border-radius: 18px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+.tryon-lead{
+  margin: 6px 0 12px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.tryon-price{
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.tryon-fine{
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+/* consent modal — equal-weight actions, nothing pre-selected */
+.tryon-consent .confirm-text{ text-align: left; }
+.confirm-fine{ text-align: center; font-size: 12px; margin: 6px 0 0; }
+.confirm-fine a{ color: var(--mauve); text-decoration: underline; }
+.tryon-consent-actions{
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.tryon-consent-actions .btn-outline,
+.tryon-consent-actions .btn-primary{ flex: 1 1 0; margin: 0; }
+.btn-outline{
+  appearance: none;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .15s var(--ease);
+}
+.btn-outline:active{ transform: translateY(1px); }
+
+/* generating */
+.tryon-generating{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 0;
+}
+
+/* gallery */
+.tryon-gallery{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.tryon-item{
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tryon-item img{
+  width: 100%;
+  aspect-ratio: 4/5;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+  background: var(--bg-deep);
+}
+.tryon-item figcaption{
+  text-align: center;
+  font-size: 12px;
+  margin: 8px 0 2px;
+  color: var(--ink);
+}
+.tryon-save{
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--mauve);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px;
+}
+.tryon-error{ text-align: center; padding: 20px 0; }
+.tryon-error .body-text{ margin-bottom: 16px; }

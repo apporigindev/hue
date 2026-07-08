@@ -117,6 +117,15 @@
           <div class="swatch-row" id="swatch-row"></div>
           <div class="swatch-labels" id="swatch-labels"></div>
           <div class="traits" id="traits"></div>
+
+          <!-- See it for real — shown only when the backend tier is live + a photo exists -->
+          <div class="tryon-card" id="tryon-card" hidden>
+            <span class="eyebrow" data-i18n="tryon.eyebrow">See it for real</span>
+            <p class="tryon-lead" data-i18n="tryon.lead">Photorealistic — you, wearing your best colours.</p>
+            <div class="tryon-price veil-text" id="tryon-price">€8.99</div>
+            <button class="btn-primary" id="btn-tryon" data-i18n="tryon.cta">See it for real</button>
+            <p class="tryon-fine" data-i18n="tryon.fine">Optional. Your photo is sent securely to generate your images, then deleted.</p>
+          </div>
         </div>
 
         <!-- Unlock panel — shown while locked -->
@@ -162,16 +171,56 @@
         <span class="eyebrow" data-i18n="compare.eyebrow">Same photo, different shade</span>
         <h1 class="title compact" data-i18n-html="compare.title">See the <em>difference</em></h1>
 
-        <div class="compare-photo">
-          <canvas id="compare-canvas"></canvas>
+        <div class="compare-pair">
+          <figure class="compare-side">
+            <div class="compare-photo"><canvas id="compare-canvas-good"></canvas></div>
+            <figcaption class="compare-cap good">
+              <span class="cap-badge" aria-hidden="true">✓</span>
+              <span class="cap-label" data-i18n="compare.flatters">Flatters you</span>
+              <span class="cap-note" id="cap-note-good"></span>
+            </figcaption>
+            <div class="compare-toggle" id="toggle-good" role="radiogroup" aria-label="Choose a flattering shade"></div>
+          </figure>
+
+          <figure class="compare-side">
+            <div class="compare-photo"><canvas id="compare-canvas-bad"></canvas></div>
+            <figcaption class="compare-cap bad">
+              <span class="cap-badge" aria-hidden="true">✕</span>
+              <span class="cap-label" data-i18n="compare.fights">Fights you</span>
+              <span class="cap-note" id="cap-note-bad"></span>
+            </figcaption>
+            <div class="compare-toggle" id="toggle-bad" role="radiogroup" aria-label="Choose a clashing shade"></div>
+          </figure>
         </div>
 
-        <div class="compare-toggle" id="compare-toggle" role="radiogroup" aria-label="Choose a shade"></div>
-        <p class="verdict" id="verdict"></p>
+        <p class="verdict" id="verdict" data-i18n="compare.summary">Same face, same light — your skin lifts beside colours that suit you and dulls beside ones that don't.</p>
 
         <div class="spacer"></div>
         <button class="btn-ghost" id="btn-start-over" data-i18n="compare.startOver">Start over</button>
         <button class="btn-ghost danger" id="btn-delete-compare" data-i18n="compare.delete">Delete my analysis</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: TRY-ON (See it for real) ============ -->
+    <section class="screen" id="screen-tryon" aria-label="See it for real">
+      <div class="content">
+        <span class="eyebrow" data-i18n="tryon.eyebrow">See it for real</span>
+        <h1 class="title compact" data-i18n-html="tryon.title">You, in <em>your colours</em></h1>
+
+        <div class="tryon-generating" id="tryon-generating">
+          <div class="analyzing-orb" aria-hidden="true"></div>
+          <span class="eyebrow" id="tryon-status" data-i18n="tryon.generating">Creating your looks…</span>
+        </div>
+
+        <div class="tryon-gallery" id="tryon-gallery" hidden></div>
+
+        <div class="tryon-error" id="tryon-error" hidden>
+          <p class="body-text" id="tryon-error-text"></p>
+          <button class="btn-primary" id="btn-tryon-retry" data-i18n="tryon.retry">Try again</button>
+        </div>
+
+        <div class="spacer"></div>
+        <button class="btn-ghost" id="btn-tryon-back" data-i18n="tryon.back">Back to result</button>
       </div>
     </section>
 
@@ -206,6 +255,21 @@
       <p class="confirm-text" id="confirm-text" data-i18n="confirm.text">Your photo and result live only on this device — they were never uploaded or stored anywhere. This clears them from here now.</p>
       <button class="btn-primary" id="confirm-delete" data-i18n="confirm.delete">Delete</button>
       <button class="btn-ghost" id="confirm-cancel" data-i18n="confirm.cancel">Keep it</button>
+    </div>
+  </div>
+
+  <!-- ============ See-it-for-real consent (opt-in, before any upload) ============ -->
+  <div class="confirm-overlay" id="tryon-consent-overlay" hidden>
+    <div class="confirm-card tryon-consent" role="dialog" aria-modal="true" aria-labelledby="tryon-consent-title" aria-describedby="tryon-consent-text">
+      <h2 class="confirm-title" id="tryon-consent-title" data-i18n="tryon.consent.title">Send your photo to create these images?</h2>
+      <p class="confirm-text" id="tryon-consent-text" data-i18n="tryon.consent.body">To make photos of you in each colour, your selfie is sent securely to our image partner (fal.ai) and deleted right after. This is the only feature that sends your photo off your device — everything else stays on it. It's optional, and your photo is never used to train models.</p>
+      <p class="confirm-fine">
+        <a href="#" id="tryon-consent-privacy" data-i18n="tryon.consent.privacy">Read how your photo is handled</a>
+      </p>
+      <div class="tryon-consent-actions">
+        <button class="btn-outline" id="tryon-consent-cancel" data-i18n="tryon.consent.cancel">Not now</button>
+        <button class="btn-primary" id="tryon-consent-agree" data-i18n="tryon.consent.agree">Agree &amp; continue</button>
+      </div>
     </div>
   </div>
 
