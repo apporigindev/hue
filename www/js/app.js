@@ -473,6 +473,21 @@ initPurchases()
   })
   .catch(() => {});
 
+/* ---------------- demo / testing shortcut ---------------- */
+
+// ?demo skips the camera and drops you straight onto a sample locked result,
+// so the unlock → payment → detailed-result flow can be tested without taking
+// a selfie. (Harmless in production — only fires when the flag is present.
+// The on-photo drape comparison still needs a real photo, so upload a selfie
+// to see that part.)
+if (/[?&]demo\b/i.test(location.search)) {
+  state.seasonKey = "trueAutumn";
+  state.metrics = { undertone: "warm", value: "deep", chroma: "soft" };
+  state.unlocked = false;
+  renderResult();
+  show("screen-result");
+}
+
 /* ---------------- PWA ---------------- */
 
 if ("serviceWorker" in navigator) {

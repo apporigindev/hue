@@ -22,12 +22,20 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      # Publishes the public landing + legal pages in site/ (NOT the app in
-      # www/, which is bundled into the native app and not a web product).
       # Requires one-time setup: Settings → Pages → Source: "GitHub Actions".
       - uses: actions/configure-pages@v5
+      # Publish the landing/legal pages (site/) at the root, plus a TEMPORARY
+      # testing copy of the app under /app/ so the flow can be clicked through
+      # in a browser. Remove the /app/ copy before public launch (the app is a
+      # native product; a free web version would undercut the paid unlock).
+      - name: Assemble deploy (landing + testing copy of the app)
+        run: |
+          rm -rf _deploy && mkdir _deploy
+          cp -r site/. _deploy/
+          mkdir -p _deploy/app && cp -r www/. _deploy/app/
+          sed -i "s/__BUILD__/${GITHUB_SHA}/" _deploy/app/sw.js || true
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _deploy
       - id: deployment
         uses: actions/deploy-pages@v4
