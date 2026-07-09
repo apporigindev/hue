@@ -38,7 +38,12 @@ const schema = z.object({
   // API, so without these the try-on feature stays off (see server.ts).
   APPLE_ISSUER_ID: z.string().optional(),
   APPLE_KEY_ID: z.string().optional(),
-  APPLE_PRIVATE_KEY: z.string().optional(), // .p8 contents (PEM)
+  // .p8 contents (PEM). Hosting dashboards often store newlines as literal
+  // "\n" — normalize so the key parses either way.
+  APPLE_PRIVATE_KEY: z
+    .string()
+    .transform((v) => v.replace(/\\n/g, "\n"))
+    .optional(),
 
   // ── Google Play (optional — Android) ──────────────────────────────
   GOOGLE_PACKAGE_NAME: z.string().optional(),
