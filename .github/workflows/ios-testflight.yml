@@ -33,6 +33,14 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      # Stamp the service-worker cache version so each build invalidates the old
+      # cache (otherwise an updated app can serve stale JS on first launch).
+      - name: Stamp service-worker cache version
+        run: |
+          STAMP="${GITHUB_SHA:0:8}-${GITHUB_RUN_NUMBER}"
+          sed -i.bak "s/__BUILD__/$STAMP/" www/sw.js && rm -f www/sw.js.bak
+          grep "const BUILD" www/sw.js
+
       - name: Sync web app into the iOS project
         run: npx cap sync ios
 

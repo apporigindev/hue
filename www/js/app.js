@@ -9,6 +9,7 @@
 import { initLandmarker, analyzeImage } from "./analysis.js";
 import { classify } from "./classify.js";
 import { localizeSeason } from "./palettes.js";
+import { localizeDetails } from "./seasonDetails.js";
 import { renderCompare } from "./compare.js";
 import { LEGAL } from "./legalContent.js";
 import { t, getLang, initI18n, applyStatic, onLangChange } from "./i18n.js";
@@ -260,6 +261,8 @@ function renderResult() {
     <div class="trait"><b>${t("result.trait.clarity")}</b><span>${t(`metric.chroma.${m.chroma}`)}</span></div>
   `;
 
+  renderDetails(getLang());
+
   $("unlock-price").textContent = unlockPrice;
 
   // Retint the ambient blobs with the user's own palette.
@@ -268,6 +271,28 @@ function renderResult() {
     `conic-gradient(from 120deg, ${c1}, ${c2} 30%, ${c3} 60%, ${c4} 85%, ${c1})`;
 
   applyUnlockState();
+}
+
+/** Populate the premium detail sections (neutrals, metals, avoid, makeup, styling). */
+function renderDetails(lang) {
+  const d = localizeDetails(state.seasonKey, lang);
+  if (!d) return;
+  const swatches = (arr) =>
+    arr.map((x) => `<div class="swatch" style="background:${x.hex}"></div>`).join("");
+  const labels = (arr) => arr.map((x) => `<span>${esc(x.label)}</span>`).join("");
+
+  $("neutral-row").innerHTML = swatches(d.neutrals);
+  $("neutral-labels").innerHTML = labels(d.neutrals);
+  $("avoid-row").innerHTML = swatches(d.avoid);
+  $("avoid-labels").innerHTML = labels(d.avoid);
+  $("metals-row").innerHTML = d.metals
+    .map((mtl) => `<span class="chip-pill">${esc(mtl)}</span>`)
+    .join("");
+  $("makeup-list").innerHTML =
+    `<div class="makeup-item"><dt>${esc(t("result.makeup.lips"))}</dt><dd>${esc(d.makeup.lips)}</dd></div>` +
+    `<div class="makeup-item"><dt>${esc(t("result.makeup.eyes"))}</dt><dd>${esc(d.makeup.eyes)}</dd></div>` +
+    `<div class="makeup-item"><dt>${esc(t("result.makeup.cheeks"))}</dt><dd>${esc(d.makeup.cheeks)}</dd></div>`;
+  $("styling-list").innerHTML = d.styling.map((tip) => `<li>${esc(tip)}</li>`).join("");
 }
 
 /** Toggle free-teaser vs unlocked-premium visibility on the result screen. */
