@@ -151,18 +151,41 @@
           </div>
         </div>
 
-        <!-- Unlock panel — shown while locked -->
+        <!-- Unlock panel — two-tier paywall, shown while locked -->
         <div class="unlock-panel" id="unlock-panel" hidden>
-          <span class="eyebrow" data-i18n="unlock.eyebrow">Full analysis</span>
-          <ul class="unlock-feat">
-            <li data-i18n="unlock.feat1">Your complete colour palette</li>
-            <li data-i18n="unlock.feat2">See it on your photo — drape comparison</li>
-            <li data-i18n="unlock.feat3">Your undertone, depth &amp; clarity</li>
-            <li data-i18n="unlock.feat4">Saved to your device — yours to keep</li>
-          </ul>
-          <div class="unlock-price veil-text" id="unlock-price">€4.99</div>
+          <span class="eyebrow" data-i18n="unlock.eyebrow">Unlock your result</span>
+
+          <div class="tier-card" id="tier-basic">
+            <div class="tier-head">
+              <span class="tier-name" data-i18n="unlock.tier1.name">Full analysis</span>
+              <span class="tier-price veil-text" id="unlock-price">€4.99</span>
+            </div>
+            <ul class="unlock-feat">
+              <li data-i18n="unlock.feat1">Your complete colour palette</li>
+              <li data-i18n="unlock.feat2">Neutrals, best metals &amp; colours to avoid</li>
+              <li data-i18n="unlock.feat3">Makeup &amp; styling guidance</li>
+              <li data-i18n="unlock.feat4">See it on your photo — drape comparison</li>
+              <li data-i18n="unlock.feat5">Saved to your device — yours to keep</li>
+            </ul>
+            <button class="btn-primary" id="btn-unlock" data-i18n="unlock.cta">Unlock full analysis</button>
+          </div>
+
+          <!-- Higher tier — includes everything + AI photos; shown when the AI backend is live -->
+          <div class="tier-card tier-best" id="tier-premium" hidden>
+            <div class="tier-flag" data-i18n="unlock.tier2.flag">Best value</div>
+            <div class="tier-head">
+              <span class="tier-name" data-i18n="unlock.tier2.name">Everything + AI photos</span>
+              <span class="tier-price veil-text" id="premium-price">€8.99</span>
+            </div>
+            <ul class="unlock-feat">
+              <li data-i18n="unlock.tier2.feat1">Everything in Full analysis</li>
+              <li data-i18n="unlock.tier2.feat2">See it for real — AI photos of you wearing your best colours</li>
+            </ul>
+            <button class="btn-primary" id="btn-unlock-premium" data-i18n="unlock.tier2.cta">Unlock everything</button>
+            <p class="unlock-fine" data-i18n="unlock.tier2.note">For the AI photos your selfie is sent securely and deleted after — you'll confirm before anything is sent.</p>
+          </div>
+
           <div class="unlock-cap" data-i18n="unlock.cap">one-time · this analysis is yours to keep</div>
-          <button class="btn-primary" id="btn-unlock" data-i18n="unlock.cta">Unlock full analysis</button>
           <p class="unlock-fine" data-i18n="unlock.fine">A one-time purchase for this analysis. No subscription, nothing recurring.</p>
         </div>
 

@@ -845,3 +845,53 @@ body{
 .tryon-save:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
 .tryon-error{ text-align: center; padding: 20px 0; }
 .tryon-error .body-text{ margin-bottom: 16px; }
+
+/* ---------- two-tier paywall ---------- */
+
+.tier-card{
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px 18px 18px;
+  margin: 12px 0;
+}
+.tier-card .unlock-feat{ margin-bottom: 14px; }
+.tier-card .btn-primary{ width: 100%; margin: 0; }
+.tier-best{
+  border: 1.5px solid var(--mauve-deep);
+  box-shadow: 0 6px 24px rgba(143,83,76,0.10);
+}
+.tier-flag{
+  position: absolute;
+  top: -10px;
+  left: 18px;
+  background: var(--mauve-deep);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.tier-head{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.tier-name{
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 21px;
+}
+.tier-price{
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  white-space: nowrap;
+}
+.tier-card .unlock-fine{ margin-top: 10px; }

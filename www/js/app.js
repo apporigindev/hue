@@ -303,10 +303,36 @@ function applyUnlockState() {
   $("hero-swatches").hidden = on; // teaser hides once the full palette shows
   $("btn-to-compare").hidden = !(on && state.photo);
   $("btn-library").hidden = listAnalyses().length === 0;
-  // "See it for real" appears only once unlocked, with a live photo, and only
-  // when the backend tier is actually available.
+  // Higher tier on the paywall + the AI card after unlock: both exist only
+  // when the backend tier is live (and the AI needs the live photo).
+  $("tier-premium").hidden = !(state.tryonAvailable && state.photo);
   $("tryon-card").hidden = !(on && state.photo && state.tryonAvailable);
-  if (on && state.photo) ensureTryonChecked();
+  applyTryonCardState();
+  if (state.photo) ensureTryonChecked(); // re-probe (no-op once positive)
+}
+
+/** The AI card has three states: buy / included-not-generated / view results. */
+function applyTryonCardState() {
+  const price = $("tryon-price");
+  const lead = document.querySelector("#tryon-card .tryon-lead");
+  const fine = document.querySelector("#tryon-card .tryon-fine");
+  const btn = $("btn-tryon");
+  if (state.tryonImages) {
+    price.hidden = true;
+    lead.textContent = t("tryon.done.lead");
+    btn.textContent = t("tryon.view");
+    fine.hidden = true;
+  } else if (state.tryonProof) {
+    price.hidden = true;
+    lead.textContent = t("tryon.included.lead");
+    btn.textContent = t("tryon.create");
+    fine.hidden = false;
+  } else {
+    price.hidden = false;
+    lead.textContent = t("tryon.lead");
+    btn.textContent = t("tryon.cta");
+    fine.hidden = false;
+  }
 }
 
 /* ---------------- unlock (pay per analysis) ---------------- */
@@ -338,6 +364,44 @@ async function doUnlock() {
 }
 
 $("btn-unlock").addEventListener("click", doUnlock);
+
+/**
+ * Higher tier: one purchase (the try-on pack) unlocks EVERYTHING — the full
+ * analysis plus the AI photos. The purchase proof is kept for generation; the
+ * consent modal still gates the actual photo upload (GDPR: consent is separate
+ * from payment and asked just-in-time before anything leaves the device).
+ */
+async function doUnlockPremium() {
+  const btn = $("btn-unlock-premium");
+  btn.disabled = true;
+  try {
+    const res = await buyTryon();
+    if (res && res.ok) {
+      state.tryonProof = {
+        transactionId: res.transactionId || null,
+        signedTransaction: res.signedTransaction || null,
+      };
+      state.unlocked = true;
+      saveAnalysis({
+        id: newId(),
+        seasonKey: state.seasonKey,
+        metrics: state.metrics,
+        label: t("library.you"),
+        unlockedAt: new Date().toISOString(),
+      });
+      applyUnlockState();
+      showToast(t("unlock.premium.done"));
+    } else if (res && res.cancelled) {
+      showToast(t("unlock.cancelled"));
+    }
+  } catch {
+    showToast(t("unlock.failed"));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$("btn-unlock-premium").addEventListener("click", doUnlockPremium);
 
 /* ---------------- saved analyses library ---------------- */
 
@@ -503,6 +567,13 @@ function photoDataUri(maxDim = 1024) {
 
 $("btn-tryon").addEventListener("click", () => {
   if (!(state.unlocked && state.photo && state.tryonAvailable)) return;
+  // Already generated → straight back to the gallery.
+  if (state.tryonImages) {
+    renderTryonGallery(state.tryonImages);
+    setTryonState("gallery");
+    show("screen-tryon");
+    return;
+  }
   $("tryon-consent-overlay").hidden = false;
   $("tryon-consent-agree").focus();
 });
@@ -539,20 +610,24 @@ async function onTryonConsentAgree() {
   const btn = $("btn-tryon");
   btn.disabled = true;
   try {
-    const res = await buyTryon();
-    if (!res || !res.ok) {
-      if (res && res.cancelled) showToast(t("unlock.cancelled"));
-      return;
+    // Pack already included (higher tier) → no second payment, just generate.
+    if (!state.tryonProof) {
+      const res = await buyTryon();
+      if (!res || !res.ok) {
+        if (res && res.cancelled) showToast(t("unlock.cancelled"));
+        return;
+      }
+      state.tryonProof = {
+        transactionId: res.transactionId || null,
+        signedTransaction: res.signedTransaction || null,
+      };
     }
-    state.tryonProof = {
-      transactionId: res.transactionId || null,
-      signedTransaction: res.signedTransaction || null,
-    };
     await runTryon();
   } catch {
     showToast(t("tryon.err.generic"));
   } finally {
     btn.disabled = false;
+    applyTryonCardState();
   }
 }
 
@@ -815,8 +890,10 @@ initPurchases()
 getTryonPrice()
   .then((p) => {
     tryonPrice = p;
-    const el = $("tryon-price");
-    if (el) el.textContent = p;
+    for (const id of ["tryon-price", "premium-price"]) {
+      const el = $(id);
+      if (el) el.textContent = p;
+    }
   })
   .catch(() => {});
 ensureTryonChecked();
@@ -832,6 +909,28 @@ if (/[?&]demo\b/i.test(location.search)) {
   state.seasonKey = "trueAutumn";
   state.metrics = { undertone: "warm", value: "deep", chroma: "soft" };
   state.unlocked = false;
+  // A synthetic portrait + faceBox so the photo-dependent parts of the flow
+  // (drape compare, the AI tier) are testable in the browser demo too.
+  {
+    const c = document.createElement("canvas");
+    c.width = 480; c.height = 600;
+    const x = c.getContext("2d");
+    x.fillStyle = "#E7DECF"; x.fillRect(0, 0, 480, 600);
+    x.fillStyle = "#5E4630";
+    x.beginPath(); x.ellipse(240, 200, 150, 175, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = "#E4B48C";
+    x.beginPath(); x.ellipse(240, 215, 118, 150, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = "#3A2A22";
+    x.beginPath(); x.ellipse(200, 200, 12, 8, 0, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.ellipse(280, 200, 12, 8, 0, 0, Math.PI * 2); x.fill();
+    const img = new Image();
+    img.onload = () => {
+      state.photo = img;
+      state.faceBox = { x: 0.255, y: 0.11, w: 0.49, h: 0.5 };
+      renderResult();
+    };
+    img.src = c.toDataURL("image/png");
+  }
   renderResult();
   show("screen-result");
 }
