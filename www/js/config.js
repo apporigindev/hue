@@ -15,6 +15,13 @@ export const TRYON_API_BASE = "https://seasonist-api-production.up.railway.app";
 // build time (see .github/workflows/ios-testflight.yml).
 export const APP_API_KEY = "";
 
+// TEST MODE — replaces the real App Store purchase sheets with the clearly
+// labelled simulated ones, so the full flow is testable before the Paid Apps
+// agreement / sandbox accounts are set up. ALWAYS false in the repo; the iOS
+// CI stamps it true only when a build is explicitly triggered with the
+// test_unlock input. Such builds must NEVER be submitted for review.
+export const TEST_UNLOCK = false;
+
 /** A stable, anonymous, on-device id used to correlate purchases (no PII). */
 export function getAppUserId() {
   const KEY = "seasonist_app_user_id";

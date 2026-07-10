@@ -4,7 +4,12 @@ name: iOS — Build & Upload to TestFlight
 # for beta testers. Requires the signing/ASC secrets described in
 # docs/ios-testflight-setup.md.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_unlock:
+        description: "TEST MODE: simulated purchase sheets instead of StoreKit (never submit such a build)"
+        type: boolean
+        default: false
 
 jobs:
   build-and-upload:
@@ -53,6 +58,15 @@ jobs:
           else
             echo "::warning::SEASONIST_APP_API_KEY not set — try-on requests will be rejected by the backend."
           fi
+
+      # Optional test mode: simulated purchase sheets (flow testing before the
+      # Paid Apps agreement / sandbox tester exist). Never submit such a build.
+      - name: Stamp test-unlock mode
+        if: ${{ inputs.test_unlock }}
+        run: |
+          sed -i.bak 's/export const TEST_UNLOCK = false;/export const TEST_UNLOCK = true;/' www/js/config.js && rm -f www/js/config.js.bak
+          grep "TEST_UNLOCK" www/js/config.js
+          echo "::warning::TEST-MODE BUILD — purchases are simulated. Do not submit."
 
       - name: Sync web app into the iOS project
         run: npx cap sync ios

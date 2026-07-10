@@ -11,6 +11,8 @@
  * so the flow is testable without a device.
  */
 
+import { TEST_UNLOCK } from "./config.js";
+
 export const UNLOCK_PRODUCT_ID = "seasonist.analysis.unlock";
 export const TRYON_PRODUCT_ID = "seasonist.tryon.unlock";
 const PRICE_FALLBACK = "€4.99";
@@ -100,6 +102,8 @@ async function priceFor(productId, fallback) {
  * { ok: false, cancelled: true } if the user backs out, and throws on error.
  */
 export async function buyUnlock() {
+  // Test-mode builds skip StoreKit entirely (see config.js TEST_UNLOCK).
+  if (TEST_UNLOCK) return simulatedSheet("Full analysis", PRICE_FALLBACK);
   const Cdv = nativeStore();
   if (Cdv) return nativeBuy(Cdv);
   return simulatedSheet("Full analysis", PRICE_FALLBACK);
@@ -121,6 +125,8 @@ async function nativeBuy(Cdv) {
  * { ok:false, cancelled:true } if the user backs out, and throws on error.
  */
 export async function buyTryon() {
+  // Test-mode builds skip StoreKit entirely (see config.js TEST_UNLOCK).
+  if (TEST_UNLOCK) return simulatedSheet("See it for real", TRYON_PRICE_FALLBACK, true);
   const Cdv = nativeStore();
   if (Cdv) return nativeBuyTryon(Cdv);
   return simulatedSheet("See it for real", TRYON_PRICE_FALLBACK, true);
