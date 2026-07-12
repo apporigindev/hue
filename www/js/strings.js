@@ -89,7 +89,7 @@ export const STRINGS = {
     "tryon.title": "You, in <em>your colours</em>",
     "tryon.generating": "Creating your looks…",
     "tryon.retry": "Try again",
-    "tryon.back": "Back to result",
+    "tryon.back": "Back to summary",
     "tryon.save": "Save",
     "tryon.consent.title": "Send your photo to create these images?",
     "tryon.consent.body": "To make photos of you in each colour, your selfie is sent securely to our image partner (fal.ai) and deleted right after. This is the only feature that sends your photo off your device — everything else stays on it. It's optional, and your photo is never used to train models.",

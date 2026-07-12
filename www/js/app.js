@@ -93,7 +93,12 @@ async function startCamera() {
     });
     const video = $("camera-feed");
     video.srcObject = state.stream;
-    $("face-ring").classList.add("live");
+    // Reveal the video only once it actually has a frame + real dimensions —
+    // otherwise it flashes at its intrinsic size before object-fit/positioning
+    // settle (the "small rectangle, then snaps into the frame" glitch).
+    const reveal = () => $("face-ring").classList.add("live");
+    if (video.readyState >= 2) reveal();
+    else video.addEventListener("loadeddata", reveal, { once: true });
   } catch {
     // Camera denied or unavailable — the gallery upload path still works.
     $("ring-hint").textContent = t("capture.cameraUnavailable");
@@ -273,6 +278,21 @@ function renderResult() {
   applyUnlockState();
 }
 
+/** A metallic CSS gradient for a metal name (matches by keyword, any language). */
+function metalGradient(name) {
+  const n = String(name).toLowerCase();
+  const g = (a, b, c, d) => `linear-gradient(135deg, ${a} 0%, ${b} 38%, ${c} 62%, ${d} 100%)`;
+  // rose gold first (contains "gold"), then the rest
+  if (/rose|роз/.test(n)) return g("#F6D3C6", "#C98A78", "#EBB6A3", "#B76E79");
+  if (/copper|мед/.test(n)) return g("#F0C199", "#C87B45", "#E1A170", "#9E5A2E");
+  if (/bronze|бронз/.test(n)) return g("#E4C08A", "#A9793F", "#C99C5C", "#7E5A2E");
+  if (/pewter|калай|gunmetal|graphite|графит/.test(n)) return g("#D6D6D2", "#8E8E88", "#B8B8B0", "#6E6E68");
+  if (/platinum|платин|white gold|бяло злато/.test(n)) return g("#F1F0EE", "#C7C7C4", "#E3E2E0", "#ABABA8");
+  if (/silver|сребро/.test(n)) return g("#F3F3F1", "#B6B6B2", "#DCDCDA", "#9C9C98");
+  if (/gold|злато/.test(n)) return g("#F6E4A6", "#C9A227", "#EBCF77", "#A8811A");
+  return g("#EAE6DE", "#B7AE9E", "#D8D2C6", "#9C9184");
+}
+
 /** Populate the premium detail sections (neutrals, metals, avoid, makeup, styling). */
 function renderDetails(lang) {
   const d = localizeDetails(state.seasonKey, lang);
@@ -286,7 +306,11 @@ function renderDetails(lang) {
   $("avoid-row").innerHTML = swatches(d.avoid);
   $("avoid-labels").innerHTML = labels(d.avoid);
   $("metals-row").innerHTML = d.metals
-    .map((mtl) => `<span class="chip-pill">${esc(mtl)}</span>`)
+    .map(
+      (mtl) =>
+        `<div class="metal"><span class="metal-swatch" style="background:${metalGradient(mtl)}"></span>` +
+        `<span class="metal-label">${esc(mtl)}</span></div>`
+    )
     .join("");
   $("makeup-list").innerHTML =
     `<div class="makeup-item"><dt>${esc(t("result.makeup.lips"))}</dt><dd>${esc(d.makeup.lips)}</dd></div>` +
@@ -631,9 +655,13 @@ async function onTryonConsentAgree() {
   }
 }
 
+// How many palette colours to render (a clean 2×2 grid; fewer = faster).
+const TRYON_COLORS = 4;
+
 function setTryonState(name) {
-  $("tryon-generating").hidden = name !== "generating";
-  $("tryon-gallery").hidden = name !== "gallery";
+  // 'loading' (skeletons + status) | 'gallery' (real images) | 'error'
+  $("tryon-status").hidden = name !== "loading";
+  $("tryon-gallery").hidden = name === "error";
   $("tryon-error").hidden = name !== "error";
 }
 
@@ -642,10 +670,13 @@ function setTryonState(name) {
 async function runTryon() {
   if (!state.photo || !state.tryonProof) return;
   show("screen-tryon");
-  setTryonState("generating");
+  const season = localizeSeason(state.seasonKey, getLang());
+  const colors = season.swatches.slice(0, TRYON_COLORS).map((sw) => ({ name: sw.label, hex: sw.hex }));
+  // Ghost cards immediately — the user sees the shape of the result, not an
+  // open-ended spinner, and each Save stays disabled until its image lands.
+  renderTryonSkeletons(colors);
+  setTryonState("loading");
   try {
-    const season = localizeSeason(state.seasonKey, getLang());
-    const colors = season.swatches.slice(0, 5).map((sw) => ({ name: sw.label, hex: sw.hex }));
     const images = await generateTryon({
       photo: photoDataUri(1024),
       season: season.name,
@@ -659,6 +690,28 @@ async function runTryon() {
   } catch (err) {
     $("tryon-error-text").textContent = tryonErrorText(err);
     setTryonState("error");
+  }
+}
+
+/** Ghost placeholder cards (one per colour) shown while images generate. */
+function renderTryonSkeletons(colors) {
+  const el = $("tryon-gallery");
+  el.replaceChildren();
+  for (const c of colors) {
+    const fig = document.createElement("figure");
+    fig.className = "tryon-item";
+    const ph = document.createElement("div");
+    ph.className = "tryon-skeleton";
+    ph.setAttribute("aria-hidden", "true");
+    const cap = document.createElement("figcaption");
+    cap.textContent = c.name;
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "tryon-save";
+    save.disabled = true; // greyed until this picture exists
+    save.textContent = t("tryon.save");
+    fig.append(ph, cap, save);
+    el.append(fig);
   }
 }
 

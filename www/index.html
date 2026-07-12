@@ -130,7 +130,7 @@
           <div class="swatch-labels" id="neutral-labels"></div>
 
           <h2 class="detail-h" data-i18n="result.section.metals">Best metals</h2>
-          <div class="chip-row" id="metals-row"></div>
+          <div class="metal-row" id="metals-row"></div>
 
           <h2 class="detail-h" data-i18n="result.section.avoid">Colours to avoid</h2>
           <p class="detail-lead" data-i18n="result.lead.avoid">These fight your colouring — they tend to dull or grey the skin.</p>
@@ -255,10 +255,7 @@
         <span class="eyebrow" data-i18n="tryon.eyebrow">See it for real</span>
         <h1 class="title compact" data-i18n-html="tryon.title">You, in <em>your colours</em></h1>
 
-        <div class="tryon-generating" id="tryon-generating">
-          <div class="analyzing-orb" aria-hidden="true"></div>
-          <span class="eyebrow" id="tryon-status" data-i18n="tryon.generating">Creating your looks…</span>
-        </div>
+        <span class="eyebrow tryon-status" id="tryon-status" role="status" aria-live="polite" data-i18n="tryon.generating" hidden>Creating your looks…</span>
 
         <div class="tryon-gallery" id="tryon-gallery" hidden></div>
 
