@@ -1010,8 +1010,26 @@ function showToast(message) {
 
 // When the language changes, re-translate static DOM (done by i18n) and
 // re-render any dynamic screen currently showing.
+// A hand-drawn outline heart, used as the closing flourish on the consent
+// headline (in place of a "!"). Inline so it sits right after "love you back".
+// The path is deliberately open with a slight overshoot at the tip for a
+// sketched, pen-drawn feel. Re-applied after every i18n render because the
+// headline uses data-i18n-html (which replaces its inner HTML).
+const HW_HEART_SVG =
+  '<span class="hw-heart-inline" aria-hidden="true"><svg viewBox="0 0 24 22" fill="none">' +
+  '<path d="M12.4 19.2 C 4 13, 2.6 6.2, 7 4.4 C 10 3.2, 12 5.6, 12.1 8.4 ' +
+  'C 12.5 5.6, 15 3.1, 17.8 4.6 C 22 6.7, 20 13, 11.6 19.6" transform="rotate(-6 12 11)"/>' +
+  "</svg></span>";
+
+function decorateConsentHeading() {
+  const h1 = document.querySelector("#screen-consent .title");
+  if (!h1 || h1.querySelector(".hw-heart-inline")) return;
+  h1.insertAdjacentHTML("beforeend", HW_HEART_SVG);
+}
+
 onLangChange(() => {
   const screen = activeScreenId();
+  decorateConsentHeading();
   if (state.errorKind) applyError();
   if (state.seasonKey && screen === "screen-result") renderResult();
   if (state.seasonKey && screen === "screen-compare") enterCompare();
@@ -1023,6 +1041,7 @@ onLangChange(() => {
 });
 
 initI18n();
+decorateConsentHeading();
 
 // Resolve the localized store price for the unlock button (native only;
 // falls back to a default in the browser).

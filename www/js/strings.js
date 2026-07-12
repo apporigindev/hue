@@ -14,7 +14,7 @@ export const STRINGS = {
     "lang.aria": "Change language",
 
     "consent.eyebrow": "Before we begin",
-    "consent.title": "Find the colours you were <em>born to wear</em>",
+    "consent.title": "Find the colours that <em>love you back</em>",
     "consent.body":
       "One daylight selfie is all it takes. In a moment you'll see your colour season and the palette made for you.",
     "consent.point1": "Your photo never leaves this device.",

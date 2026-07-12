@@ -50,20 +50,20 @@
             </svg>
           </div>
           <div class="brand-name" aria-hidden="true">Seasonist</div>
-          <span class="eyebrow" data-i18n="consent.eyebrow">Before we begin</span>
-          <h1 class="title" data-i18n-html="consent.title">Find the colours you were <em>born to wear</em></h1>
+          <h1 class="title" data-i18n-html="consent.title">Find the colours that <em>love you back</em></h1>
           <p class="body-text" data-i18n="consent.body">One daylight selfie is all it takes. In a moment you'll see your colour season and the palette made for you.</p>
         </div>
 
-        <div class="spacer"></div>
+        <div class="consent-box">
+          <ul class="consent-list" aria-label="Your privacy">
+            <li><span data-i18n="consent.point1">Your photo never leaves this device.</span></li>
+            <li><span data-i18n="consent.point2">Your photo is never stored — it's gone when you close this page.</span></li>
+            <li><span data-i18n="consent.point3">Nothing is shared or used to train any model.</span></li>
+          </ul>
+        </div>
 
-        <ul class="consent-list" aria-label="Your privacy">
-          <li><span class="dot"></span><span data-i18n="consent.point1">Your photo never leaves this device.</span></li>
-          <li><span class="dot"></span><span data-i18n="consent.point2">Your photo is never stored — it's gone when you close this page.</span></li>
-          <li><span class="dot"></span><span data-i18n="consent.point3">Nothing is shared or used to train any model.</span></li>
-        </ul>
         <button class="btn-primary" id="btn-consent" data-i18n="consent.agree">I agree — continue</button>
-        <button class="btn-ghost" id="btn-decline" data-i18n="consent.decline">Not now</button>
+        <button class="btn-outline" id="btn-decline" data-i18n="consent.decline">Not now</button>
 
         <nav class="legal-links" aria-label="Legal">
           <button type="button" class="link" data-doc="privacy" data-i18n="footer.privacy">Privacy Policy</button>

@@ -178,14 +178,40 @@ body{
 
 /* ---------- consent ---------- */
 
-/* Welcome intro: logo + wordmark + headline, left-aligned. */
-.consent-intro{ text-align: left; }
-/* On the welcome screen the eyebrow wears the brand body font (not the mono
-   label used elsewhere), so it sits with the wordmark and headline. */
-#screen-consent .eyebrow{
-  font-family: var(--font-body);
-  font-weight: 600;
-  letter-spacing: 0.14em;
+/* Welcome intro: logo + wordmark + headline, centred as one unit. */
+.consent-intro{ text-align: center; }
+.consent-intro .badge{ margin-left: auto; margin-right: auto; }
+.consent-intro .body-text{ max-width: 30ch; margin: 0 auto; font-size: 12.5px; line-height: 1.65; }
+/* headline matches the body copy colour, and the whole line is italic so
+   "Find the colours that" reads in the same face as "love you back" */
+.consent-intro .title{ font-style: italic; }
+.consent-intro .title,
+.consent-intro .title em{ color: var(--ink-soft); }
+
+/* Balanced vertical composition. The welcome stack (intro · privacy box · CTAs
+   · legal) is centred as ONE group: auto margins on the first and last children
+   split the free space evenly above and below, so there's no dead void between
+   the box and the buttons. On short screens the auto margins collapse to 0 and
+   the column scrolls from the top instead of clipping. Replaces the old single
+   flex:1 spacer that dumped all the slack into one gap. */
+#screen-consent .consent-intro{ margin-top: auto; }
+#screen-consent .legal-links{ margin-bottom: auto; }
+#screen-consent .btn-primary{ margin-top: 28px; }
+/* hand-drawn outline heart used as the closing flourish (in place of a "!") */
+.hw-heart-inline{
+  display: inline-block;
+  width: 0.72em;
+  height: 0.72em;
+  margin-left: 0.14em;
+  vertical-align: -0.06em;
+}
+.hw-heart-inline svg{ display: block; width: 100%; height: 100%; overflow: visible; }
+.hw-heart-inline path{
+  fill: none;
+  stroke: #D6453E;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .badge{
@@ -194,7 +220,7 @@ body{
   background: rgba(251,249,246,0.7);
   backdrop-filter: blur(8px);
   display:flex; align-items:center; justify-content:center;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   box-shadow: 0 8px 24px rgba(27,24,20,0.08);
   color: var(--ink);
 }
@@ -219,22 +245,32 @@ body{
   }
 }
 
+/* Privacy reassurance, centred inside an elegant outlined box. */
+.consent-box{
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(251,249,246,0.5);
+  padding: 16px 20px;
+  margin: 24px auto 0;
+  max-width: 340px;
+}
 .consent-list{
   list-style:none;
-  margin-top: 20px;
-  margin-bottom: 22px;
-  display:flex; flex-direction:column; gap:14px;
+  margin: 0;
+  display:flex; flex-direction:column; gap:9px;
+  text-align: left;
 }
 .consent-list li{
-  display:flex; gap:12px; align-items:flex-start;
-  font-size: 12.5px;
+  display: flex; gap: 9px; align-items: flex-start;
+  font-size: 12px;
   color: var(--ink-soft);
   line-height: 1.5;
 }
-.consent-list .dot{
+.consent-list li::before{
+  content:""; flex-shrink:0;
   width:5px; height:5px; border-radius:50%;
-  background: var(--mauve);
-  margin-top: 6px; flex-shrink:0;
+  background: var(--mauve-deep);
+  margin-top: 7px;
 }
 
 /* ---------- buttons ---------- */
@@ -825,7 +861,7 @@ body{
 .btn-outline{
   appearance: none;
   border: 1.5px solid var(--ink);
-  background: transparent;
+  background: rgba(251,249,246,0.6);
   color: var(--ink);
   border-radius: 14px;
   padding: 14px 16px;
@@ -835,6 +871,8 @@ body{
   transition: transform .15s var(--ease);
 }
 .btn-outline:active{ transform: translateY(1px); }
+/* consent "Not now": full-width outlined button below the primary */
+#btn-decline{ width: 100%; margin-top: 10px; }
 .btn-outline:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
 
 /* generating */
