@@ -14,9 +14,9 @@ export const STRINGS = {
     "lang.aria": "Change language",
 
     "consent.eyebrow": "Before we begin",
-    "consent.title": "Your photo stays <em>yours</em>",
+    "consent.title": "Find the colours you were <em>born to wear</em>",
     "consent.body":
-      "We'll ask for one daylight photo to read your undertone, depth, and contrast. Everything is analyzed on this device, in your browser — nothing is uploaded.",
+      "One daylight selfie is all it takes. In a moment you'll see your colour season and the palette made for you.",
     "consent.point1": "Your photo never leaves this device.",
     "consent.point2": "Your photo is never stored — it's gone when you close this page.",
     "consent.point3": "Nothing is shared or used to train any model.",

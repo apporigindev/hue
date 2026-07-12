@@ -36,30 +36,32 @@
     <!-- ============ SCREEN: CONSENT ============ -->
     <section class="screen active" id="screen-consent" aria-label="Consent">
       <div class="content">
-        <div class="badge">
-          <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="veil-badge" x1="0.2" y1="0" x2="0.8" y2="1">
-                <stop offset="0" stop-color="#E29B7B"/><stop offset="0.38" stop-color="#E5C185"/>
-                <stop offset="0.66" stop-color="#B9C6AC"/><stop offset="1" stop-color="#9DAEC4"/>
-              </linearGradient>
-            </defs>
-            <path d="M 66 19 C 46 6, 25 20, 33 35 C 40 46, 60 48, 67 59 C 74 74, 52 90, 33 79"
-                  stroke="url(#veil-badge)" stroke-width="13" stroke-linecap="round"/>
-          </svg>
+        <div class="consent-intro">
+          <div class="badge">
+            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="veil-badge" x1="0.2" y1="0" x2="0.8" y2="1">
+                  <stop offset="0" stop-color="#E29B7B"/><stop offset="0.38" stop-color="#E5C185"/>
+                  <stop offset="0.66" stop-color="#B9C6AC"/><stop offset="1" stop-color="#9DAEC4"/>
+                </linearGradient>
+              </defs>
+              <path d="M 66 19 C 46 6, 25 20, 33 35 C 40 46, 60 48, 67 59 C 74 74, 52 90, 33 79"
+                    stroke="url(#veil-badge)" stroke-width="13" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-name" aria-hidden="true">Seasonist</div>
+          <span class="eyebrow" data-i18n="consent.eyebrow">Before we begin</span>
+          <h1 class="title" data-i18n-html="consent.title">Find the colours you were <em>born to wear</em></h1>
+          <p class="body-text" data-i18n="consent.body">One daylight selfie is all it takes. In a moment you'll see your colour season and the palette made for you.</p>
         </div>
-        <div class="brand-name" aria-hidden="true">Seasonist</div>
-        <span class="eyebrow" data-i18n="consent.eyebrow">Before we begin</span>
-        <h1 class="title" data-i18n-html="consent.title">Your photo stays <em>yours</em></h1>
-        <p class="body-text" data-i18n="consent.body">We'll ask for one daylight photo to read your undertone, depth, and contrast. Everything is analyzed on this device, in your browser — nothing is uploaded.</p>
 
-        <ul class="consent-list">
+        <div class="spacer"></div>
+
+        <ul class="consent-list" aria-label="Your privacy">
           <li><span class="dot"></span><span data-i18n="consent.point1">Your photo never leaves this device.</span></li>
           <li><span class="dot"></span><span data-i18n="consent.point2">Your photo is never stored — it's gone when you close this page.</span></li>
           <li><span class="dot"></span><span data-i18n="consent.point3">Nothing is shared or used to train any model.</span></li>
         </ul>
-
-        <div class="spacer"></div>
         <button class="btn-primary" id="btn-consent" data-i18n="consent.agree">I agree — continue</button>
         <button class="btn-ghost" id="btn-decline" data-i18n="consent.decline">Not now</button>
 

@@ -168,13 +168,24 @@ body{
 
 /* ---------- consent ---------- */
 
+/* Welcome intro: logo + wordmark + headline, centred as a unit. */
+.consent-intro{ text-align: center; }
+.consent-intro .badge{ margin-left: auto; margin-right: auto; }
+/* On the welcome screen the eyebrow wears the brand body font (not the mono
+   label used elsewhere), so it sits with the wordmark and headline. */
+#screen-consent .eyebrow{
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
 .badge{
   width: 64px; height: 64px;
   border-radius: 50%;
   background: rgba(251,249,246,0.7);
   backdrop-filter: blur(8px);
   display:flex; align-items:center; justify-content:center;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   box-shadow: 0 8px 24px rgba(27,24,20,0.08);
   color: var(--ink);
 }
@@ -202,6 +213,7 @@ body{
 .consent-list{
   list-style:none;
   margin-top: 20px;
+  margin-bottom: 22px;
   display:flex; flex-direction:column; gap:14px;
 }
 .consent-list li{
