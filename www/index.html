@@ -36,32 +36,34 @@
     <!-- ============ SCREEN: CONSENT ============ -->
     <section class="screen active" id="screen-consent" aria-label="Consent">
       <div class="content">
-        <div class="badge">
-          <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="veil-badge" x1="0.2" y1="0" x2="0.8" y2="1">
-                <stop offset="0" stop-color="#E29B7B"/><stop offset="0.38" stop-color="#E5C185"/>
-                <stop offset="0.66" stop-color="#B9C6AC"/><stop offset="1" stop-color="#9DAEC4"/>
-              </linearGradient>
-            </defs>
-            <path d="M 66 19 C 46 6, 25 20, 33 35 C 40 46, 60 48, 67 59 C 74 74, 52 90, 33 79"
-                  stroke="url(#veil-badge)" stroke-width="13" stroke-linecap="round"/>
-          </svg>
+        <div class="consent-intro">
+          <div class="badge">
+            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="veil-badge" x1="0.2" y1="0" x2="0.8" y2="1">
+                  <stop offset="0" stop-color="#E29B7B"/><stop offset="0.38" stop-color="#E5C185"/>
+                  <stop offset="0.66" stop-color="#B9C6AC"/><stop offset="1" stop-color="#9DAEC4"/>
+                </linearGradient>
+              </defs>
+              <path d="M 66 19 C 46 6, 25 20, 33 35 C 40 46, 60 48, 67 59 C 74 74, 52 90, 33 79"
+                    stroke="url(#veil-badge)" stroke-width="13" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-name" aria-hidden="true">Seasonist</div>
+          <h1 class="title" data-i18n-html="consent.title">Find the colours that <em>love you back</em></h1>
+          <p class="body-text" data-i18n="consent.body">One daylight selfie is all it takes. In a moment you'll see your colour season and the palette made for you.</p>
         </div>
-        <div class="brand-name" aria-hidden="true">Seasonist</div>
-        <span class="eyebrow" data-i18n="consent.eyebrow">Before we begin</span>
-        <h1 class="title" data-i18n-html="consent.title">Your photo stays <em>yours</em></h1>
-        <p class="body-text" data-i18n="consent.body">We'll ask for one daylight photo to read your undertone, depth, and contrast. Everything is analyzed on this device, in your browser — nothing is uploaded.</p>
 
-        <ul class="consent-list">
-          <li><span class="dot"></span><span data-i18n="consent.point1">Your photo never leaves this device.</span></li>
-          <li><span class="dot"></span><span data-i18n="consent.point2">Your photo is never stored — it's gone when you close this page.</span></li>
-          <li><span class="dot"></span><span data-i18n="consent.point3">Nothing is shared or used to train any model.</span></li>
-        </ul>
+        <div class="consent-box">
+          <ul class="consent-list" aria-label="Your privacy">
+            <li><span data-i18n="consent.point1">Your photo never leaves this device.</span></li>
+            <li><span data-i18n="consent.point2">Your photo is never stored — it's gone when you close this page.</span></li>
+            <li><span data-i18n="consent.point3">Nothing is shared or used to train any model.</span></li>
+          </ul>
+        </div>
 
-        <div class="spacer"></div>
         <button class="btn-primary" id="btn-consent" data-i18n="consent.agree">I agree — continue</button>
-        <button class="btn-ghost" id="btn-decline" data-i18n="consent.decline">Not now</button>
+        <button class="btn-outline" id="btn-decline" data-i18n="consent.decline">Not now</button>
 
         <nav class="legal-links" aria-label="Legal">
           <button type="button" class="link" data-doc="privacy" data-i18n="footer.privacy">Privacy Policy</button>
@@ -82,14 +84,14 @@
 
         <div class="capture-frame">
           <div class="face-ring" id="face-ring">
-            <video id="camera-feed" autoplay playsinline muted></video>
+            <video id="camera-feed" autoplay playsinline muted aria-hidden="true"></video>
             <span id="ring-hint" data-i18n="capture.ringHint">align face</span>
           </div>
           <div class="tip-pill" data-i18n="capture.tip">Natural light · No flash · Look straight ahead</div>
         </div>
 
         <button class="btn-primary" id="btn-capture" data-i18n="capture.take">Take photo</button>
-        <label class="btn-ghost" for="file-input" data-i18n="capture.upload">Upload from gallery instead</label>
+        <label class="btn-ghost" for="file-input" role="button" tabindex="0" data-i18n="capture.upload">Upload from gallery instead</label>
         <input type="file" id="file-input" accept="image/*" hidden>
       </div>
     </section>
@@ -98,7 +100,7 @@
     <section class="screen" id="screen-analyzing" aria-label="Analyzing">
       <div class="content center">
         <div class="analyzing-orb" aria-hidden="true"></div>
-        <span class="eyebrow" id="analyzing-status" data-i18n="analyzing.step1">Reading your coloring…</span>
+        <span class="eyebrow" id="analyzing-status" role="status" aria-live="polite" data-i18n="analyzing.step1">Reading your coloring…</span>
       </div>
     </section>
 
@@ -114,23 +116,82 @@
 
         <!-- Premium — revealed after unlock -->
         <div id="result-premium" hidden>
+          <div class="result-delta" id="result-delta" role="note" hidden></div>
+
+          <h2 class="detail-h" data-i18n="result.section.colouring">Your colouring</h2>
+          <div class="traits" id="traits"></div>
+
+          <h2 class="detail-h" data-i18n="result.section.palette">Your palette</h2>
+          <p class="detail-lead" data-i18n="result.lead.palette">The colours that light you up — wear them close to your face.</p>
           <div class="swatch-row" id="swatch-row"></div>
           <div class="swatch-labels" id="swatch-labels"></div>
-          <div class="traits" id="traits"></div>
+
+          <h2 class="detail-h" data-i18n="result.section.neutrals">Your neutrals</h2>
+          <p class="detail-lead" data-i18n="result.lead.neutrals">Your everyday basics — reach for these instead of black and stark white.</p>
+          <div class="swatch-row" id="neutral-row"></div>
+          <div class="swatch-labels" id="neutral-labels"></div>
+
+          <h2 class="detail-h" data-i18n="result.section.metals">Best metals</h2>
+          <div class="metal-row" id="metals-row"></div>
+
+          <h2 class="detail-h" data-i18n="result.section.avoid">Colours to avoid</h2>
+          <p class="detail-lead" data-i18n="result.lead.avoid">These fight your colouring — they tend to dull or grey the skin.</p>
+          <div class="swatch-row" id="avoid-row"></div>
+          <div class="swatch-labels" id="avoid-labels"></div>
+
+          <h2 class="detail-h" data-i18n="result.section.makeup">Makeup</h2>
+          <dl class="makeup-list" id="makeup-list"></dl>
+
+          <h2 class="detail-h" data-i18n="result.section.styling">How to wear your season</h2>
+          <ul class="styling-list" id="styling-list"></ul>
+
+          <p class="photo-note" id="photo-note" data-i18n="result.photoNote">Your result reflects this photo's light. For your truest season use even daylight — you can re-run free within your unlock.</p>
+
+          <!-- See it for real — shown only when the backend tier is live + a photo exists -->
+          <div class="tryon-card" id="tryon-card" hidden>
+            <span class="eyebrow eyebrow-serif" data-i18n="tryon.eyebrow">See it for real</span>
+            <p class="tryon-lead" data-i18n="tryon.lead">Photorealistic — you, wearing your best colours.</p>
+            <div class="tryon-price veil-text" id="tryon-price">€8.99</div>
+            <button class="btn-primary" id="btn-tryon" data-i18n="tryon.cta">See it for real</button>
+            <p class="tryon-fine" data-i18n="tryon.fine">Optional. Your photo is sent securely to generate your images, then deleted.</p>
+          </div>
         </div>
 
-        <!-- Unlock panel — shown while locked -->
+        <!-- Unlock panel — two-tier paywall, shown while locked -->
         <div class="unlock-panel" id="unlock-panel" hidden>
-          <span class="eyebrow" data-i18n="unlock.eyebrow">Full analysis</span>
-          <ul class="unlock-feat">
-            <li data-i18n="unlock.feat1">Your complete colour palette</li>
-            <li data-i18n="unlock.feat2">See it on your photo — drape comparison</li>
-            <li data-i18n="unlock.feat3">Your undertone, depth &amp; clarity</li>
-            <li data-i18n="unlock.feat4">Saved to your device — yours to keep</li>
-          </ul>
-          <div class="unlock-price veil-text" id="unlock-price">€4.99</div>
+          <span class="eyebrow" data-i18n="unlock.eyebrow">Unlock your result</span>
+
+          <div class="tier-card" id="tier-basic">
+            <div class="tier-head">
+              <span class="tier-name" data-i18n="unlock.tier1.name">Full analysis</span>
+              <span class="tier-price veil-text" id="unlock-price">€4.99</span>
+            </div>
+            <ul class="unlock-feat">
+              <li data-i18n="unlock.feat1">Your complete colour palette</li>
+              <li data-i18n="unlock.feat2">Neutrals, best metals &amp; colours to avoid</li>
+              <li data-i18n="unlock.feat3">Makeup &amp; styling guidance</li>
+              <li data-i18n="unlock.feat4">See it on your photo — drape comparison</li>
+              <li data-i18n="unlock.feat5">Saved to your device — yours to keep</li>
+            </ul>
+            <button class="btn-primary" id="btn-unlock" data-i18n="unlock.cta">Unlock full analysis</button>
+          </div>
+
+          <!-- Higher tier — includes everything + AI photos; shown when the AI backend is live -->
+          <div class="tier-card tier-best" id="tier-premium" hidden>
+            <div class="tier-flag" data-i18n="unlock.tier2.flag">Best value</div>
+            <div class="tier-head">
+              <span class="tier-name" data-i18n="unlock.tier2.name">Everything + AI photos</span>
+              <span class="tier-price veil-text" id="premium-price">€8.99</span>
+            </div>
+            <ul class="unlock-feat">
+              <li data-i18n="unlock.tier2.feat1">Everything in Full analysis</li>
+              <li data-i18n="unlock.tier2.feat2">See it for real — AI photos of you wearing your best colours</li>
+            </ul>
+            <button class="btn-primary" id="btn-unlock-premium" data-i18n="unlock.tier2.cta">Unlock everything</button>
+            <p class="unlock-fine" data-i18n="unlock.tier2.note">For the AI photos your selfie is sent securely and deleted after — you'll confirm before anything is sent.</p>
+          </div>
+
           <div class="unlock-cap" data-i18n="unlock.cap">one-time · this analysis is yours to keep</div>
-          <button class="btn-primary" id="btn-unlock" data-i18n="unlock.cta">Unlock full analysis</button>
           <p class="unlock-fine" data-i18n="unlock.fine">A one-time purchase for this analysis. No subscription, nothing recurring.</p>
         </div>
 
@@ -162,16 +223,53 @@
         <span class="eyebrow" data-i18n="compare.eyebrow">Same photo, different shade</span>
         <h1 class="title compact" data-i18n-html="compare.title">See the <em>difference</em></h1>
 
-        <div class="compare-photo">
-          <canvas id="compare-canvas"></canvas>
+        <div class="compare-pair">
+          <figure class="compare-side">
+            <div class="compare-photo"><canvas id="compare-canvas-good"></canvas></div>
+            <figcaption class="compare-cap good">
+              <span class="cap-badge" aria-hidden="true">✓</span>
+              <span class="cap-label" data-i18n="compare.flatters">Flatters you</span>
+              <span class="cap-note" id="cap-note-good"></span>
+            </figcaption>
+            <div class="compare-toggle" id="toggle-good" role="radiogroup" aria-label="Choose a flattering shade"></div>
+          </figure>
+
+          <figure class="compare-side">
+            <div class="compare-photo"><canvas id="compare-canvas-bad"></canvas></div>
+            <figcaption class="compare-cap bad">
+              <span class="cap-badge" aria-hidden="true">✕</span>
+              <span class="cap-label" data-i18n="compare.fights">Fights you</span>
+              <span class="cap-note" id="cap-note-bad"></span>
+            </figcaption>
+            <div class="compare-toggle" id="toggle-bad" role="radiogroup" aria-label="Choose a clashing shade"></div>
+          </figure>
         </div>
 
-        <div class="compare-toggle" id="compare-toggle" role="radiogroup" aria-label="Choose a shade"></div>
-        <p class="verdict" id="verdict"></p>
+        <p class="verdict" id="verdict" data-i18n="compare.summary">Same face, same light — your skin lifts beside colours that suit you and dulls beside ones that don't.</p>
 
         <div class="spacer"></div>
         <button class="btn-ghost" id="btn-start-over" data-i18n="compare.startOver">Start over</button>
         <button class="btn-ghost danger" id="btn-delete-compare" data-i18n="compare.delete">Delete my analysis</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: TRY-ON (See it for real) ============ -->
+    <section class="screen" id="screen-tryon" aria-label="See it for real">
+      <div class="content">
+        <span class="eyebrow eyebrow-serif" data-i18n="tryon.eyebrow">See it for real</span>
+        <h1 class="title compact" data-i18n-html="tryon.title">You, in <em>your colours</em></h1>
+
+        <span class="eyebrow tryon-status" id="tryon-status" role="status" aria-live="polite" data-i18n="tryon.generating" hidden>Creating your looks…</span>
+
+        <div class="tryon-gallery" id="tryon-gallery" hidden></div>
+
+        <div class="tryon-error" id="tryon-error" hidden>
+          <p class="body-text" id="tryon-error-text"></p>
+          <button class="btn-primary" id="btn-tryon-retry" data-i18n="tryon.retry">Try again</button>
+        </div>
+
+        <div class="spacer"></div>
+        <button class="btn-ghost" id="btn-tryon-back" data-i18n="tryon.back">Back to result</button>
       </div>
     </section>
 
@@ -206,6 +304,33 @@
       <p class="confirm-text" id="confirm-text" data-i18n="confirm.text">Your photo and result live only on this device — they were never uploaded or stored anywhere. This clears them from here now.</p>
       <button class="btn-primary" id="confirm-delete" data-i18n="confirm.delete">Delete</button>
       <button class="btn-ghost" id="confirm-cancel" data-i18n="confirm.cancel">Keep it</button>
+    </div>
+  </div>
+
+  <!-- ============ Try-on framing guidance (needs neck/shoulders) ============ -->
+  <div class="confirm-overlay" id="tryon-frame-overlay" hidden>
+    <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="tryon-frame-title" aria-describedby="tryon-frame-text">
+      <h2 class="confirm-title" id="tryon-frame-title" data-i18n="tryon.frame.title">A little more of you, please</h2>
+      <p class="confirm-text" id="tryon-frame-text" data-i18n="tryon.frame.body">This is a close-up of your face. To dress you in colour — a top or a scarf — the AI needs to see your neck and shoulders. Retake with a bit more of you in frame for the best result. Your unlock is kept.</p>
+      <div class="tryon-consent-actions">
+        <button class="btn-outline" id="tryon-frame-anyway" data-i18n="tryon.frame.anyway">Try anyway</button>
+        <button class="btn-primary" id="tryon-frame-retake" data-i18n="tryon.frame.retake">Retake photo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ See-it-for-real consent (opt-in, before any upload) ============ -->
+  <div class="confirm-overlay" id="tryon-consent-overlay" hidden>
+    <div class="confirm-card tryon-consent" role="dialog" aria-modal="true" aria-labelledby="tryon-consent-title" aria-describedby="tryon-consent-text">
+      <h2 class="confirm-title" id="tryon-consent-title" data-i18n="tryon.consent.title">Send your photo to create these images?</h2>
+      <p class="confirm-text" id="tryon-consent-text" data-i18n="tryon.consent.body">To make photos of you in each colour, your selfie is sent securely to our image partner (fal.ai) and deleted right after. This is the only feature that sends your photo off your device — everything else stays on it. It's optional, and your photo is never used to train models.</p>
+      <p class="confirm-fine">
+        <a href="#" id="tryon-consent-privacy" data-i18n="tryon.consent.privacy">Read how your photo is handled</a>
+      </p>
+      <div class="tryon-consent-actions">
+        <button class="btn-outline" id="tryon-consent-cancel" data-i18n="tryon.consent.cancel">Not now</button>
+        <button class="btn-primary" id="tryon-consent-agree" data-i18n="tryon.consent.agree">Agree &amp; continue</button>
+      </div>
     </div>
   </div>
 

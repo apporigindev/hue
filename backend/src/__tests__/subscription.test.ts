@@ -9,6 +9,7 @@ const day = 86_400_000;
 function appleResult(over: Partial<AppleResult> = {}): AppleResult {
   return {
     productId: "seasonist.premium.annual",
+    transactionId: "TXN-1",
     originalTransactionId: "OTID-1",
     appAccountToken: "user-abc-123",
     expiresAt: new Date(Date.now() + day),

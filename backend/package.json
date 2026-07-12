@@ -6,7 +6,8 @@
   "description": "Seasonist subscription backend — receipt validation, entitlements, and App Store / Play server notifications.",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "node scripts/fetch-apple-certs.mjs && tsc",
+    "migrate": "node scripts/migrate.mjs",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

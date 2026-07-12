@@ -11,14 +11,21 @@
  * so the flow is testable without a device.
  */
 
+import { TEST_UNLOCK } from "./config.js";
+
 export const UNLOCK_PRODUCT_ID = "seasonist.analysis.unlock";
+export const TRYON_PRODUCT_ID = "seasonist.tryon.unlock";
 const PRICE_FALLBACK = "€4.99";
+const TRYON_PRICE_FALLBACK = "€8.99";
 
 function nativeStore() {
   return typeof window !== "undefined" && window.CdvPurchase ? window.CdvPurchase : null;
 }
 
 let initialized = false;
+// Resolver for an in-flight try-on purchase, so we can hand the transaction's
+// proof back to the caller (the generic approved handler runs for all products).
+let pendingTryon = null;
 
 export async function initPurchases() {
   const Cdv = nativeStore();
@@ -26,20 +33,60 @@ export async function initPurchases() {
   const { store, ProductType, Platform } = Cdv;
   store.register([
     { id: UNLOCK_PRODUCT_ID, type: ProductType.CONSUMABLE, platform: Platform.APPLE_APPSTORE },
+    { id: TRYON_PRODUCT_ID, type: ProductType.CONSUMABLE, platform: Platform.APPLE_APPSTORE },
   ]);
   // Verify then finish every approved transaction (on-device verification).
-  store.when().approved((t) => t.verify());
+  store.when().approved((t) => {
+    // For a try-on purchase, capture the proof before finishing so the backend
+    // can verify it (the transactionId is looked up via the App Store Server API).
+    try {
+      if (pendingTryon && transactionHasProduct(t, TRYON_PRODUCT_ID)) {
+        pendingTryon.resolve({ ok: true, ...extractProof(t) });
+        pendingTryon = null;
+      }
+    } catch {
+      /* ignore — verify/finish still proceeds below */
+    }
+    t.verify();
+  });
   store.when().verified((r) => r.finish());
   await store.initialize([Platform.APPLE_APPSTORE]);
   initialized = true;
 }
 
+function transactionHasProduct(t, productId) {
+  if (!t) return false;
+  if (t.productId === productId) return true;
+  const products = Array.isArray(t.products) ? t.products : [];
+  return products.some((p) => (p && (p.id || p.productId)) === productId);
+}
+
+// Field names differ across cordova-plugin-purchase / StoreKit versions.
+// transactionId is the reliably-available proof; jwsRepresentation is sent too
+// when the SK2 plugin exposes it. (Verify the exact fields on a sandbox device.)
+function extractProof(t) {
+  const np = t.nativePurchase || {};
+  return {
+    transactionId: t.transactionId || np.transactionId || np.transaction_id || np.id || null,
+    signedTransaction: np.jwsRepresentation || t.jwsRepresentation || null,
+  };
+}
+
 /** Localized store price (e.g. "€4.99", "$4.99", "9,99 лв") or a fallback. */
 export async function getUnlockPrice() {
+  return priceFor(UNLOCK_PRODUCT_ID, PRICE_FALLBACK);
+}
+
+/** Localized store price for the try-on pack, or a fallback. */
+export async function getTryonPrice() {
+  return priceFor(TRYON_PRODUCT_ID, TRYON_PRICE_FALLBACK);
+}
+
+async function priceFor(productId, fallback) {
   const Cdv = nativeStore();
   if (Cdv) {
     try {
-      const product = Cdv.store.get(UNLOCK_PRODUCT_ID);
+      const product = Cdv.store.get(productId);
       const offer = product && product.getOffer && product.getOffer();
       const price = offer?.pricingPhases?.[0]?.price;
       if (price) return price;
@@ -47,7 +94,7 @@ export async function getUnlockPrice() {
       /* fall through to fallback */
     }
   }
-  return PRICE_FALLBACK;
+  return fallback;
 }
 
 /**
@@ -55,9 +102,11 @@ export async function getUnlockPrice() {
  * { ok: false, cancelled: true } if the user backs out, and throws on error.
  */
 export async function buyUnlock() {
+  // Test-mode builds skip StoreKit entirely (see config.js TEST_UNLOCK).
+  if (TEST_UNLOCK) return simulatedSheet("Full analysis", PRICE_FALLBACK);
   const Cdv = nativeStore();
   if (Cdv) return nativeBuy(Cdv);
-  return simulatedBuy();
+  return simulatedSheet("Full analysis", PRICE_FALLBACK);
 }
 
 async function nativeBuy(Cdv) {
@@ -70,9 +119,55 @@ async function nativeBuy(Cdv) {
   return { ok: true };
 }
 
+/**
+ * Runs the try-on pack purchase. Resolves { ok:true, transactionId?,
+ * signedTransaction? } on success (the proof the backend verifies),
+ * { ok:false, cancelled:true } if the user backs out, and throws on error.
+ */
+export async function buyTryon() {
+  // Test-mode builds skip StoreKit entirely (see config.js TEST_UNLOCK).
+  if (TEST_UNLOCK) return simulatedSheet("See it for real", TRYON_PRICE_FALLBACK, true);
+  const Cdv = nativeStore();
+  if (Cdv) return nativeBuyTryon(Cdv);
+  return simulatedSheet("See it for real", TRYON_PRICE_FALLBACK, true);
+}
+
+function nativeBuyTryon(Cdv) {
+  const product = Cdv.store.get(TRYON_PRODUCT_ID);
+  if (!product) throw new Error("Product not available");
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      if (pendingTryon) {
+        pendingTryon = null;
+        reject(new Error("purchase timed out"));
+      }
+    }, 120000);
+    pendingTryon = {
+      resolve: (v) => {
+        clearTimeout(timeout);
+        resolve(v);
+      },
+      reject: (e) => {
+        clearTimeout(timeout);
+        reject(e);
+      },
+    };
+    // approved→(capture proof)→verify→finish is wired in initPurchases().
+    product
+      .getOffer()
+      .order()
+      .catch((e) => {
+        clearTimeout(timeout);
+        pendingTryon = null;
+        // The plugin rejects on cancel too; treat as a cancellation.
+        resolve({ ok: false, cancelled: true, reason: e && e.message });
+      });
+  });
+}
+
 /* ---------------- simulated sheet (dev / browser preview only) ---------------- */
 
-function simulatedBuy() {
+function simulatedSheet(itemLabel, price, withProof = false) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.className = "pay-sheet-overlay";
@@ -82,9 +177,9 @@ function simulatedBuy() {
         <div class="pay-head">
           <div class="pay-app">
             <div class="pay-icon" aria-hidden="true"></div>
-            <div><div class="pay-name">Seasonist</div><div class="pay-item">Full analysis</div></div>
+            <div><div class="pay-name">Seasonist</div><div class="pay-item">${itemLabel}</div></div>
           </div>
-          <div class="pay-price">${PRICE_FALLBACK}</div>
+          <div class="pay-price">${price}</div>
         </div>
         <div class="pay-method">
           <span> Pay with your card / Apple Pay</span>
@@ -107,7 +202,11 @@ function simulatedBuy() {
       btn.textContent = "Processing…";
       btn.disabled = true;
       overlay.querySelector(".pay-cancel").style.visibility = "hidden";
-      setTimeout(() => done({ ok: true, simulated: true }), 1100);
+      setTimeout(() => {
+        const res = { ok: true, simulated: true };
+        if (withProof) res.transactionId = "SIMULATED-" + Date.now();
+        done(res);
+      }, 1100);
     });
   });
 }

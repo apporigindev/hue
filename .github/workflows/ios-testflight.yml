@@ -4,7 +4,12 @@ name: iOS — Build & Upload to TestFlight
 # for beta testers. Requires the signing/ASC secrets described in
 # docs/ios-testflight-setup.md.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_unlock:
+        description: "TEST MODE: simulated purchase sheets instead of StoreKit (never submit such a build)"
+        type: boolean
+        default: false
 
 jobs:
   build-and-upload:
@@ -32,6 +37,36 @@ jobs:
 
       - name: Install JS dependencies
         run: npm ci
+
+      # Stamp the service-worker cache version so each build invalidates the old
+      # cache (otherwise an updated app can serve stale JS on first launch).
+      - name: Stamp service-worker cache version
+        run: |
+          STAMP="${GITHUB_SHA:0:8}-${GITHUB_RUN_NUMBER}"
+          sed -i.bak "s/__BUILD__/$STAMP/" www/sw.js && rm -f www/sw.js.bak
+          grep "const BUILD" www/sw.js
+
+      # The x-api-key for the try-on backend is never committed (public repo);
+      # stamp it into the app bundle here. Empty secret → feature stays off.
+      - name: Stamp try-on API key
+        env:
+          SEASONIST_APP_API_KEY: ${{ secrets.SEASONIST_APP_API_KEY }}
+        run: |
+          if [ -n "$SEASONIST_APP_API_KEY" ]; then
+            sed -i.bak "s/export const APP_API_KEY = \"\";/export const APP_API_KEY = \"$SEASONIST_APP_API_KEY\";/" www/js/config.js && rm -f www/js/config.js.bak
+            grep -q "$SEASONIST_APP_API_KEY" www/js/config.js && echo "API key stamped."
+          else
+            echo "::warning::SEASONIST_APP_API_KEY not set — try-on requests will be rejected by the backend."
+          fi
+
+      # Optional test mode: simulated purchase sheets (flow testing before the
+      # Paid Apps agreement / sandbox tester exist). Never submit such a build.
+      - name: Stamp test-unlock mode
+        if: ${{ inputs.test_unlock }}
+        run: |
+          sed -i.bak 's/export const TEST_UNLOCK = false;/export const TEST_UNLOCK = true;/' www/js/config.js && rm -f www/js/config.js.bak
+          grep "TEST_UNLOCK" www/js/config.js
+          echo "::warning::TEST-MODE BUILD — purchases are simulated. Do not submit."
 
       - name: Sync web app into the iOS project
         run: npx cap sync ios

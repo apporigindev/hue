@@ -13,6 +13,7 @@
   --gold: #C9A88A;
   --honey: #D9C0A3;
   --mauve: #B98D86;
+  --mauve-deep: #8F534C; /* mauve darkened to >=4.5:1 for TEXT on light bg (WCAG AA) */
   --sage: #6E8C82;
   --line: rgba(27,24,20,0.12);
 
@@ -80,7 +81,17 @@ body{
 }
 
 @media (prefers-reduced-motion: reduce){
+  /* Honour the OS "reduce motion" setting everywhere: no morphing blobs,
+     spinning orbs, sliding sheets, or screen slide-fades. */
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
   .blob{ animation: none; }
+  .screen{ transition: none !important; }
 }
 
 /* ---------- screens & transitions ---------- */
@@ -92,12 +103,19 @@ body{
   opacity: 0;
   transform: translateY(12px);
   pointer-events: none;
-  transition: opacity .5s var(--ease), transform .5s var(--ease);
+  /* visibility:hidden removes the inactive screen from the accessibility tree
+     AND the tab order (so a screen reader doesn't read every screen at once and
+     keyboard focus can't land on off-screen controls). It flips to hidden only
+     after the fade-out completes (0s duration, .5s delay). */
+  visibility: hidden;
+  transition: opacity .5s var(--ease), transform .5s var(--ease), visibility 0s .5s;
 }
 .screen.active{
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+  visibility: visible;
+  transition: opacity .5s var(--ease), transform .5s var(--ease);
 }
 
 .content{
@@ -117,7 +135,7 @@ body{
   font-size: 10.5px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--mauve);
+  color: var(--mauve-deep);
   margin-bottom: 12px;
   display:block;
 }
@@ -129,8 +147,18 @@ body{
   line-height: 1.25;
   margin-bottom: 14px;
 }
+/* "See it for real" — the display serif, matching the "You, in your colours"
+   title it sits above (not the mono eyebrow used elsewhere). */
+.eyebrow-serif{
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 16px;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
 .title.compact{ font-size: 22px; margin-bottom: 18px; }
-.title em{ font-style: italic; color: var(--mauve); }
+.title em{ font-style: italic; color: var(--mauve-deep); }
 
 .season-name{
   font-family: var(--font-display);
@@ -150,26 +178,62 @@ body{
 
 /* ---------- consent ---------- */
 
+/* Welcome intro: logo + wordmark + headline, centred as one unit. */
+.consent-intro{ text-align: center; }
+.consent-intro .badge{ margin-left: auto; margin-right: auto; }
+.consent-intro .body-text{ max-width: 30ch; margin: 0 auto; font-size: 12.5px; line-height: 1.65; }
+/* headline matches the body copy colour, and the whole line is italic so
+   "Find the colours that" reads in the same face as "love you back" */
+.consent-intro .title{ font-style: italic; }
+.consent-intro .title,
+.consent-intro .title em{ color: var(--ink-soft); }
+
+/* Balanced vertical composition. The welcome stack (intro · privacy box · CTAs
+   · legal) is centred as ONE group: auto margins on the first and last children
+   split the free space evenly above and below, so there's no dead void between
+   the box and the buttons. On short screens the auto margins collapse to 0 and
+   the column scrolls from the top instead of clipping. Replaces the old single
+   flex:1 spacer that dumped all the slack into one gap. */
+#screen-consent .consent-intro{ margin-top: auto; }
+#screen-consent .legal-links{ margin-bottom: auto; }
+#screen-consent .btn-primary{ margin-top: 28px; }
+/* hand-drawn outline heart used as the closing flourish (in place of a "!") */
+.hw-heart-inline{
+  display: inline-block;
+  width: 0.72em;
+  height: 0.72em;
+  margin-left: 0.14em;
+  vertical-align: -0.06em;
+}
+.hw-heart-inline svg{ display: block; width: 100%; height: 100%; overflow: visible; }
+.hw-heart-inline path{
+  fill: none;
+  stroke: #D6453E;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .badge{
-  width: 64px; height: 64px;
+  width: 88px; height: 88px;
   border-radius: 50%;
   background: rgba(251,249,246,0.7);
   backdrop-filter: blur(8px);
   display:flex; align-items:center; justify-content:center;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
   box-shadow: 0 8px 24px rgba(27,24,20,0.08);
   color: var(--ink);
 }
-.badge svg{ width:30px; height:30px; }
+.badge svg{ width:44px; height:44px; }
 
 /* brand wordmark — wears the veil (deeper cut so thin strokes read as silk) */
 .brand-name{
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
-  font-size: 28px;
+  font-size: 38px;
   line-height: 1;
-  margin: -8px 0 24px;
+  margin: 0 0 24px;
   color: var(--ink-soft);
 }
 @supports ((-webkit-background-clip: text) or (background-clip: text)){
@@ -181,21 +245,32 @@ body{
   }
 }
 
+/* Privacy reassurance, centred inside an elegant outlined box. */
+.consent-box{
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(251,249,246,0.5);
+  padding: 16px 20px;
+  margin: 24px auto 0;
+  max-width: 340px;
+}
 .consent-list{
   list-style:none;
-  margin-top: 20px;
-  display:flex; flex-direction:column; gap:14px;
+  margin: 0;
+  display:flex; flex-direction:column; gap:9px;
+  text-align: left;
 }
 .consent-list li{
-  display:flex; gap:12px; align-items:flex-start;
-  font-size: 12.5px;
+  display: flex; gap: 9px; align-items: flex-start;
+  font-size: 12px;
   color: var(--ink-soft);
   line-height: 1.5;
 }
-.consent-list .dot{
+.consent-list li::before{
+  content:""; flex-shrink:0;
   width:5px; height:5px; border-radius:50%;
-  background: var(--mauve);
-  margin-top: 6px; flex-shrink:0;
+  background: var(--mauve-deep);
+  margin-top: 7px;
 }
 
 /* ---------- buttons ---------- */
@@ -232,7 +307,7 @@ body{
   text-underline-offset: 3px;
 }
 .btn-ghost:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
-.btn-ghost.danger{ color: var(--mauve); }
+.btn-ghost.danger{ color: var(--mauve-deep); }
 
 /* ---------- delete: confirm dialog + toast ---------- */
 
@@ -317,7 +392,11 @@ body{
   border: none;
   background: transparent;
   color: var(--ink-soft);
-  padding: 5px 10px;
+  min-height: 32px; /* comfortable tap target (WCAG 2.5.8) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 13px;
   border-radius: 999px;
   cursor: pointer;
   transition: background .2s var(--ease), color .2s var(--ease);
@@ -382,10 +461,10 @@ body{
 }
 .info-body h2:first-child{ margin-top: 0; }
 .info-body p{ margin-bottom: 4px; }
-.info-body .info-muted{ color: var(--mauve); font-size: 12px; margin-top: 14px; }
+.info-body .info-muted{ color: var(--mauve-deep); font-size: 12px; margin-top: 14px; }
 
 /* ---------- veil gradient text (brand accent) ---------- */
-.veil-text{ color: var(--mauve); }
+.veil-text{ color: var(--mauve-deep); }
 @supports ((-webkit-background-clip: text) or (background-clip: text)){
   .veil-text{
     background: linear-gradient(90deg,#D97F55,#D3A052 38%,#8FA47C 66%,#7A93B5);
@@ -547,8 +626,76 @@ body{
   text-align:center;
 }
 
+/* ---------- premium detail sections ---------- */
+
+.detail-h{
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 600;
+  margin-top: 34px;
+  margin-bottom: 2px;
+}
+#result-premium > .detail-h:first-child{ margin-top: 6px; }
+/* the (usually hidden) delta banner is the first child, so tighten the heading
+   that follows it when the banner is not shown */
+#result-premium > .result-delta[hidden] + .detail-h{ margin-top: 6px; }
+.result-delta{
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 6px 0 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.photo-note{
+  margin-top: 28px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.detail-lead{
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top: 14px; }
+.chip-pill{
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 15px;
+}
+.makeup-list{ margin-top: 14px; display:flex; flex-direction:column; gap:10px; }
+.makeup-item{
+  display:flex; justify-content:space-between; align-items:baseline; gap:16px;
+  border-bottom:1px solid var(--line); padding-bottom:9px;
+}
+.makeup-item dt{
+  font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.12em;
+  text-transform:uppercase; color: var(--ink-soft); flex-shrink:0;
+}
+.makeup-item dd{ font-size:13.5px; color: var(--ink); text-align:right; }
+.styling-list{ margin-top: 14px; list-style:none; display:flex; flex-direction:column; gap:11px; }
+.styling-list li{
+  position:relative; padding-left: 18px; font-size:13.5px;
+  color: var(--ink-soft); line-height:1.5;
+}
+.styling-list li::before{
+  content:""; position:absolute; left:0; top:7px;
+  width:6px; height:6px; border-radius:50%; background: var(--mauve-deep);
+}
+
 .traits{
-  margin-top: 24px;
+  margin-top: 18px;
   display:flex; flex-direction:column; gap:10px;
 }
 .trait{
@@ -609,3 +756,248 @@ body{
   min-height: 2.6em;
 }
 .verdict b{ color: var(--ink); font-weight:600; }
+
+/* ---------- compare: side-by-side ---------- */
+
+.compare-pair{
+  display:flex;
+  gap:12px;
+  margin-bottom:14px;
+}
+.compare-side{
+  flex:1 1 0;
+  min-width:0;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+}
+/* Each panel's photo is tighter than the standalone rule above. */
+.compare-side .compare-photo{
+  margin-bottom:10px;
+}
+.compare-cap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  text-align:center;
+  margin-bottom:10px;
+}
+.cap-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px; height:22px;
+  border-radius:50%;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  line-height:1;
+}
+.compare-cap.good .cap-badge{ background:#2f7a55; }
+.compare-cap.bad  .cap-badge{ background:#a84f4f; }
+.cap-label{
+  font-family: var(--font-mono);
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  font-weight:600;
+}
+.compare-cap.good .cap-label{ color:#26694a; }
+.compare-cap.bad  .cap-label{ color:#9a4444; }
+.cap-note{
+  font-size:11px;
+  line-height:1.3;
+  color: var(--ink-soft);
+}
+.compare-side .compare-toggle{
+  gap:8px;
+  margin-bottom:0;
+}
+.compare-side .swatch-dot{
+  width:24px; height:24px;
+}
+
+/* ---------- see it for real (generative try-on) ---------- */
+
+.tryon-card{
+  margin-top: 24px;
+  padding: 22px 20px;
+  border-radius: 18px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+.tryon-lead{
+  margin: 6px 0 12px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.tryon-price{
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.tryon-fine{
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+/* consent modal — equal-weight actions, nothing pre-selected */
+.tryon-consent .confirm-text{ text-align: left; }
+.confirm-fine{ text-align: center; font-size: 12px; margin: 6px 0 0; }
+.confirm-fine a{ color: var(--mauve-deep); text-decoration: underline; }
+.tryon-consent-actions{
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.tryon-consent-actions .btn-outline,
+.tryon-consent-actions .btn-primary{ flex: 1 1 0; margin: 0; }
+.btn-outline{
+  appearance: none;
+  border: 1.5px solid var(--ink);
+  background: rgba(251,249,246,0.6);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .15s var(--ease);
+}
+.btn-outline:active{ transform: translateY(1px); }
+/* consent "Not now": full-width outlined button below the primary */
+#btn-decline{ width: 100%; margin-top: 10px; }
+.btn-outline:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+
+/* generating */
+.tryon-generating{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 0;
+}
+
+/* gallery */
+.tryon-gallery{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.tryon-item{
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tryon-item img{
+  width: 100%;
+  aspect-ratio: 4/5;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+  background: var(--bg-deep);
+}
+.tryon-item figcaption{
+  text-align: center;
+  font-size: 12px;
+  margin: 8px 0 2px;
+  color: var(--ink);
+}
+.tryon-save{
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--mauve-deep);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 8px; /* larger tap target */
+}
+.tryon-save:focus-visible{ outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.tryon-save:disabled{ color: var(--ink-soft); opacity: 0.38; cursor: default; }
+
+/* loading: a status line + ghost/skeleton cards (no open-ended spinner) */
+.tryon-status{ text-align: center; margin-bottom: 14px; }
+.tryon-skeleton{
+  width: 100%;
+  aspect-ratio: 4/5;
+  border-radius: 14px;
+  background-color: var(--bg-deep);
+  background-image: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.25s ease-in-out infinite;
+}
+@keyframes shimmer{ from{ background-position: 190% 0; } to{ background-position: -90% 0; } }
+
+/* metals as metallic discs, not just text */
+.metal-row{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; }
+.metal{ display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.metal-swatch{
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(27,24,20,0.06);
+  box-shadow: inset 0 -3px 6px rgba(0,0,0,0.22),
+              inset 0 3px 6px rgba(255,255,255,0.55),
+              0 2px 7px rgba(27,24,20,0.12);
+}
+.metal-label{ font-size: 11.5px; line-height: 1.3; color: var(--ink-soft); text-align: center; }
+.tryon-error{ text-align: center; padding: 20px 0; }
+.tryon-error .body-text{ margin-bottom: 16px; }
+
+/* ---------- two-tier paywall ---------- */
+
+.tier-card{
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px 18px 18px;
+  margin: 12px 0;
+}
+.tier-card .unlock-feat{ margin-bottom: 14px; }
+.tier-card .btn-primary{ width: 100%; margin: 0; }
+.tier-best{
+  border: 1.5px solid var(--mauve-deep);
+  box-shadow: 0 6px 24px rgba(143,83,76,0.10);
+}
+.tier-flag{
+  position: absolute;
+  top: -10px;
+  left: 18px;
+  background: var(--mauve-deep);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.tier-head{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.tier-name{
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 21px;
+}
+.tier-price{
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  white-space: nowrap;
+}
+.tier-card .unlock-fine{ margin-top: 10px; }

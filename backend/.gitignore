@@ -7,3 +7,4 @@ certs/*.cer
 certs/*.pem
 certs/*.der
 certs/*.crt
+.app-api-key.local

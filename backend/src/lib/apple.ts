@@ -8,6 +8,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   SignedDataVerifier,
+  AppStoreServerAPIClient,
   Environment,
   type JWSTransactionDecodedPayload,
   type ResponseBodyV2DecodedPayload,
@@ -24,6 +25,7 @@ export class AppleNotConfiguredError extends Error {
 
 export interface AppleResult {
   productId: string | null;
+  transactionId: string | null; // unique per purchase — used for consumable replay protection
   originalTransactionId: string | null;
   appAccountToken: string | null; // = our anonymous appUserId, if the app set it
   expiresAt: Date | null;
@@ -72,6 +74,7 @@ function mapTransaction(tx: JWSTransactionDecodedPayload): AppleResult {
   const active = expiresAt === null || expiresAt.getTime() > Date.now();
   return {
     productId: tx.productId ?? null,
+    transactionId: (tx.transactionId as string | undefined) ?? null,
     originalTransactionId: tx.originalTransactionId ?? null,
     appAccountToken: (tx.appAccountToken as string | undefined) ?? null,
     expiresAt,
@@ -83,6 +86,48 @@ function mapTransaction(tx: JWSTransactionDecodedPayload): AppleResult {
 /** Verify a signed transaction JWS (from StoreKit 2 on the device). */
 export async function verifyAppleTransaction(signedTransaction: string): Promise<AppleResult> {
   const tx = await getVerifier().verifyAndDecodeTransaction(signedTransaction);
+  return mapTransaction(tx);
+}
+
+/* ---------------- App Store Server API (transactionId lookup) ---------------- */
+
+let apiClient: AppStoreServerAPIClient | null = null;
+
+/** True when the App Store Server API credentials are configured. */
+export function appStoreApiConfigured(): boolean {
+  return !!(env.APPLE_ISSUER_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY);
+}
+
+function getApiClient(): AppStoreServerAPIClient {
+  if (apiClient) return apiClient;
+  if (!appStoreApiConfigured()) {
+    throw new AppleNotConfiguredError(
+      "App Store Server API is not configured — set APPLE_ISSUER_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY."
+    );
+  }
+  const environment =
+    env.APPLE_ENVIRONMENT === "Production" ? Environment.PRODUCTION : Environment.SANDBOX;
+  apiClient = new AppStoreServerAPIClient(
+    env.APPLE_PRIVATE_KEY!,
+    env.APPLE_KEY_ID!,
+    env.APPLE_ISSUER_ID!,
+    env.APPLE_BUNDLE_ID,
+    environment
+  );
+  return apiClient;
+}
+
+/**
+ * The robust proof path: the app sends only a transactionId; we ask Apple for
+ * its own signed record of that transaction and verify it. This does not trust
+ * anything the client signed, and works with StoreKit 1 (cordova-plugin-purchase
+ * defaults) where a per-transaction JWS is not exposed to the app.
+ */
+export async function verifyAppleTransactionId(transactionId: string): Promise<AppleResult> {
+  const resp = await getApiClient().getTransactionInfo(transactionId);
+  const signed = resp.signedTransactionInfo;
+  if (!signed) throw new Error("no signedTransactionInfo returned for transaction");
+  const tx = await getVerifier().verifyAndDecodeTransaction(signed);
   return mapTransaction(tx);
 }
 
